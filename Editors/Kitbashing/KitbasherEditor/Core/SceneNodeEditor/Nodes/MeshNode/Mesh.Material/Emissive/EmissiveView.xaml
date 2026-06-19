@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="Editors.KitbasherEditor.ViewModels.SceneNodeEditor.Nodes.MeshNode.Mesh.WsMaterial.Emissive.EmissiveView"
+<UserControl x:Name="Root" x:Class="Editors.KitbasherEditor.ViewModels.SceneNodeEditor.Nodes.MeshNode.Mesh.WsMaterial.Emissive.EmissiveView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
@@ -29,15 +29,15 @@
             <DockPanel LastChildFill="False">
 
                 <basedialogs:AeAttribute DockPanel.Dock="Top" LabelText="{loc:Loc KitbashTool.Emissive.Emissive}" LabelWidth="{StaticResource labelWidth}"  >
-                    <userinterface:ShaderTextureView DataContext="{Binding EmissiveTexture}"/>
+                    <userinterface:ShaderTextureView DataContext="{Binding DataContext.EmissiveTexture, ElementName=Root}"/>
                 </basedialogs:AeAttribute>
 
                 <basedialogs:AeAttribute DockPanel.Dock="Top" LabelText="{loc:Loc KitbashTool.Emissive.EmissiveDistortion}" LabelWidth="{StaticResource labelWidth}"  >
-                    <userinterface:ShaderTextureView DataContext="{Binding EmissiveDistortionTexture}"/>
+                    <userinterface:ShaderTextureView DataContext="{Binding DataContext.EmissiveDistortionTexture, ElementName=Root}"/>
                 </basedialogs:AeAttribute>
 
                 <basedialogs:AeAttribute DockPanel.Dock="Top" LabelText="{loc:Loc KitbashTool.Emissive.EmissiveDirection}" LabelWidth="{StaticResource labelWidth}"  >
-                    <mathviews1:Vector2View DataContext="{Binding EmissiveDirection}" />
+                    <mathviews1:Vector2View DataContext="{Binding DataContext.EmissiveDirection, ElementName=Root}" />
                 </basedialogs:AeAttribute>
 
                 <basedialogs:AeAttribute DockPanel.Dock="Top" LabelText="{loc:Loc KitbashTool.Emissive.DistortStrength}" LabelWidth="{StaticResource labelWidth}"  >
@@ -49,12 +49,12 @@
                 </basedialogs:AeAttribute>
 
                 <basedialogs:AeAttribute DockPanel.Dock="Top" LabelText="{loc:Loc KitbashTool.Emissive.EmissiveTint}" LabelWidth="{StaticResource labelWidth}"  >
-                    <colourpickerbutton:ColourPickerButtonView DataContext="{Binding EmissiveTint}" Margin="5,0,5,0" HorizontalAlignment="Left" Width="20" Height="20"/>
+                    <colourpickerbutton:ColourPickerButtonView DataContext="{Binding DataContext.EmissiveTint, ElementName=Root}" Margin="5,0,5,0" HorizontalAlignment="Left" Width="20" Height="20"/>
                 </basedialogs:AeAttribute>
 
                 <basedialogs:AeAttribute DockPanel.Dock="Top" LabelText="{loc:Loc KitbashTool.Emissive.Gradient1}" LabelWidth="{StaticResource labelWidth}" >
                     <DockPanel DockPanel.Dock="Top">
-                        <colourpickerbutton:ColourPickerButtonView DataContext="{Binding Gradient0}" Margin="5,0,5,0" HorizontalAlignment="Left" Width="20" Height="20"/>
+                        <colourpickerbutton:ColourPickerButtonView DataContext="{Binding DataContext.Gradient0, ElementName=Root}" Margin="5,0,5,0" HorizontalAlignment="Left" Width="20" Height="20"/>
                         <Label Content="{loc:Loc KitbashTool.Emissive.Time}"/>
                         <TextBox Margin="2"  Text="{Binding GradientTime0, UpdateSourceTrigger=LostFocus}" VerticalContentAlignment="Center" Width="50" HorizontalAlignment="Left" HorizontalContentAlignment="Right"/>
                     </DockPanel>
@@ -64,7 +64,7 @@
                 <basedialogs:AeAttribute DockPanel.Dock="Top" LabelText="{loc:Loc KitbashTool.Emissive.Gradient2}" LabelWidth="{StaticResource labelWidth}"  >
                     <DockPanel DockPanel.Dock="Top">
     
-                        <colourpickerbutton:ColourPickerButtonView DataContext="{Binding Gradient1}" Margin="5,0,5,0" HorizontalAlignment="Left" Width="20" Height="20"/>
+                        <colourpickerbutton:ColourPickerButtonView DataContext="{Binding DataContext.Gradient1, ElementName=Root}" Margin="5,0,5,0" HorizontalAlignment="Left" Width="20" Height="20"/>
                         <Label Content="{loc:Loc KitbashTool.Emissive.Time}"/>
                         <TextBox Margin="2"  Text="{Binding GradientTime1, UpdateSourceTrigger=LostFocus}" VerticalContentAlignment="Center" Width="50" HorizontalAlignment="Left" HorizontalContentAlignment="Right"/>
                     </DockPanel>
@@ -72,7 +72,7 @@
 
                 <basedialogs:AeAttribute DockPanel.Dock="Top" LabelText="{loc:Loc KitbashTool.Emissive.Gradient3}" LabelWidth="{StaticResource labelWidth}"  >
                     <DockPanel DockPanel.Dock="Top">
-                        <colourpickerbutton:ColourPickerButtonView DataContext="{Binding Gradient2}" Margin="5,0,5,0" HorizontalAlignment="Left" Width="20" Height="20"/>
+                        <colourpickerbutton:ColourPickerButtonView DataContext="{Binding DataContext.Gradient2, ElementName=Root}" Margin="5,0,5,0" HorizontalAlignment="Left" Width="20" Height="20"/>
                         <Label Content="{loc:Loc KitbashTool.Emissive.Time}"/>
                         <TextBox Margin="2"  Text="{Binding GradientTime2, UpdateSourceTrigger=LostFocus}" VerticalContentAlignment="Center" Width="50" HorizontalAlignment="Left" HorizontalContentAlignment="Right"/>
                     </DockPanel>
@@ -80,7 +80,7 @@
 
                 <basedialogs:AeAttribute DockPanel.Dock="Top" LabelText="{loc:Loc KitbashTool.Emissive.Gradient4}" LabelWidth="{StaticResource labelWidth}" >
                     <DockPanel DockPanel.Dock="Top">
-                        <colourpickerbutton:ColourPickerButtonView DataContext="{Binding Gradient3}" Margin="5,0,5,0" HorizontalAlignment="Left" Width="20" Height="20"/>
+                        <colourpickerbutton:ColourPickerButtonView DataContext="{Binding DataContext.Gradient3, ElementName=Root}" Margin="5,0,5,0" HorizontalAlignment="Left" Width="20" Height="20"/>
                         <Label Content="{loc:Loc KitbashTool.Emissive.Time}"/>
                         <TextBox Margin="2"  Text="{Binding GradientTime3, UpdateSourceTrigger=LostFocus}" VerticalContentAlignment="Center" Width="50" HorizontalAlignment="Left" HorizontalContentAlignment="Right"/>
                     </DockPanel>
@@ -103,7 +103,7 @@
                 </basedialogs:AeAttribute>
 
                 <basedialogs:AeAttribute DockPanel.Dock="Top" LabelText="{loc:Loc KitbashTool.Emissive.Tiling}" LabelWidth="{StaticResource labelWidth}"  >
-                    <mathviews1:Vector2View DataContext="{Binding EmissiveTiling}"/>
+                    <mathviews1:Vector2View DataContext="{Binding DataContext.EmissiveTiling, ElementName=Root}"/>
                 </basedialogs:AeAttribute>
 
             </DockPanel>

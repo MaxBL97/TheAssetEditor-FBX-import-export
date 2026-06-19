@@ -1,14 +1,15 @@
-﻿using System;
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 
 namespace AssetEditor.Themes.Attached 
 {
     /// <summary>
-    /// An attached property class for showing a hint when a text box is empty. Set the text box's Tag property to the text
+    /// Attached properties for showing hint text in empty TextBox and PasswordBox controls.
+    /// Set the control Tag property to the hint text.
     /// </summary>
-    public static class TextHinting {
+    public static class TextHinting
+    {
         public static readonly DependencyProperty ShowWhenFocusedProperty =
             DependencyProperty.RegisterAttached(
                 "ShowWhenFocused",
@@ -16,20 +17,14 @@ namespace AssetEditor.Themes.Attached
                 typeof(TextHinting),
                 new FrameworkPropertyMetadata(false));
 
-        public static void SetShowWhenFocused(Control control, bool value) {
-            if (control is TextBoxBase || control is PasswordBox) {
-                control.SetValue(ShowWhenFocusedProperty, value);
-            }
-
-            throw new ArgumentException("Control was not a textbox", nameof(control));
+        public static void SetShowWhenFocused(DependencyObject element, bool value)
+        {
+            element.SetValue(ShowWhenFocusedProperty, value);
         }
 
-        public static bool GetShowWhenFocused(Control control) {
-            if (control is TextBoxBase || control is PasswordBox) {
-                return (bool) control.GetValue(ShowWhenFocusedProperty);
-            }
-
-            throw new ArgumentException("Control was not a textbox", nameof(control));
+        public static bool GetShowWhenFocused(DependencyObject element)
+        {
+            return (bool)element.GetValue(ShowWhenFocusedProperty);
         }
     }
 }

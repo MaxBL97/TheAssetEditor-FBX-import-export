@@ -1,9 +1,10 @@
-﻿using System;
+using System;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using AssetEditor.UiCommands;
+using AssetEditor.Views.ToolDocumentation;
 using CommonControls.BaseDialogs;
 using CommunityToolkit.Mvvm.Input;
 using Editors.AnimationFragmentEditor.AnimationPack.Commands;
@@ -145,6 +146,13 @@ namespace AssetEditor.ViewModels
             _uiCommandFactory.Create<OpenWebpageCommand>(x => x.Configure(fullPath)).Execute();
         }
         [RelayCommand] private void OpenModdingWiki() => _uiCommandFactory.Create<OpenWebpageCommand>(x => x.Configure("https://tw-modding.com/index.php/Tutorial:AssetEditor")).Execute();
+
+        [RelayCommand]
+        private void OpenToolDocumentation()
+        {
+            var window = new ToolDocumentationWindow();
+            window.Show();
+        }
         
         [RelayCommand] private void OpenPatreon() => _uiCommandFactory.Create<OpenWebpageCommand>(x => x.Configure("https://www.patreon.com/TheAssetEditor")).Execute();
         [RelayCommand] private void OpenDiscord() => _uiCommandFactory.Create<OpenWebpageCommand>(x => x.Configure("https://discord.gg/6Djf2sCczC")).Execute();

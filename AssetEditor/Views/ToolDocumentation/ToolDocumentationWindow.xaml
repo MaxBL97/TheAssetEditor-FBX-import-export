@@ -1,0 +1,52 @@
+<Window x:Class="AssetEditor.Views.ToolDocumentation.ToolDocumentationWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:loc="clr-namespace:Shared.Ui.Common;assembly=Shared.Ui"
+        xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
+        mc:Ignorable="d"
+        Style="{StaticResource CustomWindowStyle}"
+        WindowStartupLocation="CenterOwner"
+        Width="1200"
+        Height="800"
+        Title="{loc:Loc ToolDocumentation.Title}">
+    <Grid Margin="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="300"/>
+            <ColumnDefinition Width="8"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <DockPanel Grid.Row="0" Grid.ColumnSpan="3" LastChildFill="True" Margin="0,0,0,8">
+            <StackPanel DockPanel.Dock="Left" Orientation="Horizontal">
+                <Button Content="{loc:Loc ToolDocumentation.Refresh}" Command="{Binding RefreshCommand}" Margin="0,0,6,0" MinWidth="80"/>
+                <Button Content="{loc:Loc ToolDocumentation.OpenFolder}" Command="{Binding OpenFolderCommand}" Margin="0,0,10,0" MinWidth="110"/>
+            </StackPanel>
+            <TextBlock Text="{Binding RootFolder}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+        </DockPanel>
+
+        <Border Grid.Row="1" Grid.Column="0" BorderBrush="{DynamicResource App.Border}" BorderThickness="1">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Top"
+                           Text="{loc:Loc ToolDocumentation.Documents}"
+                           FontWeight="SemiBold"
+                           Margin="8"/>
+                <ListBox ItemsSource="{Binding Documents}"
+                         SelectedItem="{Binding SelectedDocument, Mode=TwoWay}"
+                         DisplayMemberPath="DisplayName"
+                         BorderThickness="0"/>
+            </DockPanel>
+        </Border>
+
+        <GridSplitter Grid.Row="1" Grid.Column="1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+
+        <Border Grid.Row="1" Grid.Column="2" BorderBrush="{DynamicResource App.Border}" BorderThickness="1">
+            <wv2:WebView2 x:Name="DocumentBrowser"/>
+        </Border>
+    </Grid>
+</Window>

@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="Editors.KitbasherEditor.ViewModels.SceneNodeEditor.Nodes.MeshNode.Mesh.WsMaterial.DirtAndDecal.AdvancedRmvMaterialView"
+<UserControl x:Name="Root" x:Class="Editors.KitbasherEditor.ViewModels.SceneNodeEditor.Nodes.MeshNode.Mesh.WsMaterial.DirtAndDecal.AdvancedRmvMaterialView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
@@ -42,23 +42,23 @@
                 </basedialogs:AeAttribute>
 
                 <basedialogs:AeAttribute DockPanel.Dock="Top" LabelText="{loc:Loc KitbashTool.AdvancedRmv.DirtMap}" LabelWidth="{StaticResource labelWidth}"  IsEnabled="{Binding ShowDirtMap, UpdateSourceTrigger=PropertyChanged}">
-                    <userinterface:ShaderTextureView DataContext="{Binding DirtMap}"/>
+                    <userinterface:ShaderTextureView DataContext="{Binding DataContext.DirtMap, ElementName=Root}"/>
                 </basedialogs:AeAttribute>
 
                 <basedialogs:AeAttribute DockPanel.Dock="Top" LabelText="{loc:Loc KitbashTool.AdvancedRmv.DirtMask}" LabelWidth="{StaticResource labelWidth}"  IsEnabled="{Binding ShowDirtMask, UpdateSourceTrigger=PropertyChanged}">
-                    <userinterface:ShaderTextureView DataContext="{Binding DirtMask}"/>
+                    <userinterface:ShaderTextureView DataContext="{Binding DataContext.DirtMask, ElementName=Root}"/>
                 </basedialogs:AeAttribute>
 
                 <basedialogs:AeAttribute DockPanel.Dock="Top" LabelText="{loc:Loc KitbashTool.AdvancedRmv.SkinMask}" LabelWidth="{StaticResource labelWidth}"   IsEnabled="{Binding ShowSkinMask, UpdateSourceTrigger=PropertyChanged}">
-                    <userinterface:ShaderTextureView DataContext="{Binding SkinMask}"/>
+                    <userinterface:ShaderTextureView DataContext="{Binding DataContext.SkinMask, ElementName=Root}"/>
                 </basedialogs:AeAttribute>
 
                 <basedialogs:AeAttribute DockPanel.Dock="Top" LabelText="{loc:Loc KitbashTool.AdvancedRmv.DecalMask}" LabelWidth="{StaticResource labelWidth}"  IsEnabled="{Binding ShowDecalMask, UpdateSourceTrigger=PropertyChanged}">
-                    <userinterface:ShaderTextureView DataContext="{Binding DecalMask}" />
+                    <userinterface:ShaderTextureView DataContext="{Binding DataContext.DecalMask, ElementName=Root}" />
                 </basedialogs:AeAttribute>
 
                 <basedialogs:AeAttribute DockPanel.Dock="Top" LabelText="{loc:Loc KitbashTool.AdvancedRmv.UvScale}" LabelWidth="{StaticResource labelWidth}"   IsEnabled="{Binding ShowUvScale, UpdateSourceTrigger=PropertyChanged}">
-                    <mathviews1:Vector2View DataContext="{Binding UvScale}" />
+                    <mathviews1:Vector2View DataContext="{Binding DataContext.UvScale, ElementName=Root}" />
                 </basedialogs:AeAttribute>
 
                 <basedialogs:AeAttribute DockPanel.Dock="Top" LabelText="{loc:Loc KitbashTool.AdvancedRmv.TextureTransform}" LabelWidth="{StaticResource labelWidth}"   IsEnabled="{Binding ShowTextureTransform, UpdateSourceTrigger=PropertyChanged}">

@@ -21,8 +21,6 @@ namespace Shared.Ui.BaseDialogs.PackFileTree
         public IPackFileContainer Owner { get; }
         public UnsavedChangesTracker UnsavedChanges { get; } = new();
 
-        [ObservableProperty] public partial bool IsMainEditabelPack { get; set; }
-
         public RootTreeNode(string name, IPackFileContainer owner) : 
             base(name, NodeType.Root, null)
         {
@@ -41,6 +39,7 @@ namespace Shared.Ui.BaseDialogs.PackFileTree
 
         [ObservableProperty] public partial ObservableCollection<TreeNode> Children { get; set; } = [];
         [ObservableProperty] public partial bool IsVisible { get; set; } = true;
+        [ObservableProperty] public partial bool IsMainEditabelPack { get; set; } = false;
         [ObservableProperty] public partial string Name { get; set; }
         [ObservableProperty] public partial bool IsNodeExpanded { get; set; } = false;
         [ObservableProperty] public partial NodeType NodeType { get; private set; }

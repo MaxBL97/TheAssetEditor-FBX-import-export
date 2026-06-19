@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="AssetEditor.Views.MenuBarView"
+<UserControl x:Class="AssetEditor.Views.MenuBarView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
@@ -129,6 +129,7 @@
             <MenuItem Header="{loc:Loc MenuBar.Help}" BorderThickness="1.5" WindowChrome.IsHitTestVisibleInChrome="True">
                 <MenuItem Header="{loc:Loc MenuBar.Help.AssetEditorHelp}" Command="{Binding MenuBar.OpenHelpCommand}"/>
                 <MenuItem Header="{loc:Loc MenuBar.Help.ModdingWiki}" Command="{Binding MenuBar.OpenModdingWikiCommand}"/>
+                <MenuItem Header="{loc:Loc MenuBar.Help.ToolDocumentation}" Command="{Binding MenuBar.OpenToolDocumentationCommand}"/>
                 <Separator/>
 
                 <MenuItem Header="{loc:Loc MenuBar.Help.VideoTutorials}">

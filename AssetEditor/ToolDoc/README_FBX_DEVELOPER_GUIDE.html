@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>README_FBX_DEVELOPER_GUIDE.md</title>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8">
+
+<style>
+/* https://github.com/microsoft/vscode/blob/master/extensions/markdown-language-features/media/markdown.css */
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+body {
+	font-family: var(--vscode-markdown-font-family, -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif);
+	font-size: var(--vscode-markdown-font-size, 14px);
+	padding: 0 26px;
+	line-height: var(--vscode-markdown-line-height, 22px);
+	word-wrap: break-word;
+}
+
+#code-csp-warning {
+	position: fixed;
+	top: 0;
+	right: 0;
+	color: white;
+	margin: 16px;
+	text-align: center;
+	font-size: 12px;
+	font-family: sans-serif;
+	background-color:#444444;
+	cursor: pointer;
+	padding: 6px;
+	box-shadow: 1px 1px 1px rgba(0,0,0,.25);
+}
+
+#code-csp-warning:hover {
+	text-decoration: none;
+	background-color:#007acc;
+	box-shadow: 2px 2px 2px rgba(0,0,0,.25);
+}
+
+body.scrollBeyondLastLine {
+	margin-bottom: calc(100vh - 22px);
+}
+
+body.showEditorSelection .code-line {
+	position: relative;
+}
+
+body.showEditorSelection .code-active-line:before,
+body.showEditorSelection .code-line:hover:before {
+	content: "";
+	display: block;
+	position: absolute;
+	top: 0;
+	left: -12px;
+	height: 100%;
+}
+
+body.showEditorSelection li.code-active-line:before,
+body.showEditorSelection li.code-line:hover:before {
+	left: -30px;
+}
+
+.vscode-light.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.15);
+}
+
+.vscode-light.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.40);
+}
+
+.vscode-light.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+.vscode-dark.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.4);
+}
+
+.vscode-dark.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.60);
+}
+
+.vscode-dark.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+.vscode-high-contrast.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 160, 0, 0.7);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 160, 0, 1);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+img {
+	max-width: 100%;
+	max-height: 100%;
+}
+
+a {
+	text-decoration: none;
+}
+
+a:hover {
+	text-decoration: underline;
+}
+
+a:focus,
+input:focus,
+select:focus,
+textarea:focus {
+	outline: 1px solid -webkit-focus-ring-color;
+	outline-offset: -1px;
+}
+
+hr {
+	border: 0;
+	height: 2px;
+	border-bottom: 2px solid;
+}
+
+h1 {
+	padding-bottom: 0.3em;
+	line-height: 1.2;
+	border-bottom-width: 1px;
+	border-bottom-style: solid;
+}
+
+h1, h2, h3 {
+	font-weight: normal;
+}
+
+table {
+	border-collapse: collapse;
+}
+
+table > thead > tr > th {
+	text-align: left;
+	border-bottom: 1px solid;
+}
+
+table > thead > tr > th,
+table > thead > tr > td,
+table > tbody > tr > th,
+table > tbody > tr > td {
+	padding: 5px 10px;
+}
+
+table > tbody > tr + tr > td {
+	border-top: 1px solid;
+}
+
+blockquote {
+	margin: 0 7px 0 5px;
+	padding: 0 16px 0 10px;
+	border-left-width: 5px;
+	border-left-style: solid;
+}
+
+code {
+	font-family: Menlo, Monaco, Consolas, "Droid Sans Mono", "Courier New", monospace, "Droid Sans Fallback";
+	font-size: 1em;
+	line-height: 1.357em;
+}
+
+body.wordWrap pre {
+	white-space: pre-wrap;
+}
+
+pre:not(.hljs),
+pre.hljs code > div {
+	padding: 16px;
+	border-radius: 3px;
+	overflow: auto;
+}
+
+pre code {
+	color: var(--vscode-editor-foreground);
+	tab-size: 4;
+}
+
+/** Theming */
+
+.vscode-light pre {
+	background-color: rgba(220, 220, 220, 0.4);
+}
+
+.vscode-dark pre {
+	background-color: rgba(10, 10, 10, 0.4);
+}
+
+.vscode-high-contrast pre {
+	background-color: rgb(0, 0, 0);
+}
+
+.vscode-high-contrast h1 {
+	border-color: rgb(0, 0, 0);
+}
+
+.vscode-light table > thead > tr > th {
+	border-color: rgba(0, 0, 0, 0.69);
+}
+
+.vscode-dark table > thead > tr > th {
+	border-color: rgba(255, 255, 255, 0.69);
+}
+
+.vscode-light h1,
+.vscode-light hr,
+.vscode-light table > tbody > tr + tr > td {
+	border-color: rgba(0, 0, 0, 0.18);
+}
+
+.vscode-dark h1,
+.vscode-dark hr,
+.vscode-dark table > tbody > tr + tr > td {
+	border-color: rgba(255, 255, 255, 0.18);
+}
+
+</style>
+
+<style>
+/* Tomorrow Theme */
+/* http://jmblog.github.com/color-themes-for-google-code-highlightjs */
+/* Original theme - https://github.com/chriskempson/tomorrow-theme */
+
+/* Tomorrow Comment */
+.hljs-comment,
+.hljs-quote {
+	color: #8e908c;
+}
+
+/* Tomorrow Red */
+.hljs-variable,
+.hljs-template-variable,
+.hljs-tag,
+.hljs-name,
+.hljs-selector-id,
+.hljs-selector-class,
+.hljs-regexp,
+.hljs-deletion {
+	color: #c82829;
+}
+
+/* Tomorrow Orange */
+.hljs-number,
+.hljs-built_in,
+.hljs-builtin-name,
+.hljs-literal,
+.hljs-type,
+.hljs-params,
+.hljs-meta,
+.hljs-link {
+	color: #f5871f;
+}
+
+/* Tomorrow Yellow */
+.hljs-attribute {
+	color: #eab700;
+}
+
+/* Tomorrow Green */
+.hljs-string,
+.hljs-symbol,
+.hljs-bullet,
+.hljs-addition {
+	color: #718c00;
+}
+
+/* Tomorrow Blue */
+.hljs-title,
+.hljs-section {
+	color: #4271ae;
+}
+
+/* Tomorrow Purple */
+.hljs-keyword,
+.hljs-selector-tag {
+	color: #8959a8;
+}
+
+.hljs {
+	display: block;
+	overflow-x: auto;
+	color: #4d4d4c;
+	padding: 0.5em;
+}
+
+.hljs-emphasis {
+	font-style: italic;
+}
+
+.hljs-strong {
+	font-weight: bold;
+}
+</style>
+
+<style>
+/*
+ * Markdown PDF CSS
+ */
+
+ body {
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif, "Meiryo";
+	padding: 0 12px;
+}
+
+pre {
+	background-color: #f8f8f8;
+	border: 1px solid #cccccc;
+	border-radius: 3px;
+	overflow-x: auto;
+	white-space: pre-wrap;
+	overflow-wrap: break-word;
+}
+
+pre:not(.hljs) {
+	padding: 23px;
+	line-height: 19px;
+}
+
+blockquote {
+	background: rgba(127, 127, 127, 0.1);
+	border-color: rgba(0, 122, 204, 0.5);
+}
+
+.emoji {
+	height: 1.4em;
+}
+
+code {
+	font-size: 14px;
+	line-height: 19px;
+}
+
+/* for inline code */
+:not(pre):not(.hljs) > code {
+	color: #C9AE75; /* Change the old color so it seems less like an error */
+	font-size: inherit;
+}
+
+/* Page Break : use <div class="page"/> or <div class="page"></div> to insert page break
+-------------------------------------------------------- */
+.page {
+	page-break-after: always;
+}
+
+</style>
+
+<script src="https://unpkg.com/mermaid/dist/mermaid.min.js"></script>
+</head>
+<body>
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: document.body.classList.contains('vscode-dark') || document.body.classList.contains('vscode-high-contrast')
+          ? 'dark'
+          : 'default'
+    });
+  </script>
+<h1 id="autodesk-fbx-integration-developer-guide">Autodesk FBX Integration Developer Guide</h1>
+<p>This document explains how the Autodesk FBX SDK integration is structured, how to build it locally, and how to extend it safely for additional <code>RigidModel</code> / RMV2 use cases.</p>
+<p>The current integration targets <strong>RMV2 v7/v8-era workflows only</strong>. Older RMV generations should be rejected or handled through a separate conversion layer because their vertex formats, material headers, and serialization rules are not equivalent.</p>
+<hr>
+<h2 id="1-scope-of-the-current-fbx-solution">1. Scope of the current FBX solution</h2>
+<p>The FBX integration adds a direct Autodesk SDK pipeline for:</p>
+<ul>
+<li>RMV2 -&gt; FBX export;</li>
+<li>FBX -&gt; RMV2 advanced import;</li>
+<li><code>.anim</code> -&gt; FBX export;</li>
+<li>first FBX animation stack -&gt; <code>.anim</code> import;</li>
+<li>skeleton-aware animation roundtrip;</li>
+<li>skeleton bone-order remapping by name;</li>
+<li>Total War inch-scale FBX export/import handling;</li>
+<li>first-pass material and texture roundtrip;</li>
+<li>local runtime copy of <code>FbxSdkBridge.dll</code> and <code>libfbxsdk.dll</code> into the AssetEditor output folder.</li>
+</ul>
+<p>The integration intentionally does <strong>not</strong> include Autodesk binaries in the repository. Developers must install Autodesk FBX SDK locally.</p>
+<hr>
+<h2 id="2-high-level-architecture">2. High-level architecture</h2>
+<p>The solution is split into three layers:</p>
+<ol>
+<li><strong>Native bridge</strong>: <code>Native/FbxSdkBridge</code></li>
+<li><strong>Managed service</strong>: <code>Editors.ImportExport/Common/FbxSdk/AutodeskFbxService.cs</code></li>
+<li><strong>Import/export UI and workflow layer</strong>: <code>Editors.ImportExport/Importing</code> and <code>Editors.ImportExport/Exporting</code></li>
+</ol>
+<pre><code class="language-mermaid"><div class="mermaid">flowchart TD
+    AE[AssetEditor WPF app]
+    IE[Editors.ImportExport]
+    SVC[AutodeskFbxService]
+    BRIDGE[FbxSdkBridge C++/CLI]
+    SDK[Autodesk FBX SDK 2020.3.9]
+    RMV[RMV2 / .anim game formats]
+    PACK[PackFileService / loaded game packs]
+
+    AE --> IE
+    IE --> SVC
+    SVC --> BRIDGE
+    BRIDGE --> SDK
+    IE --> RMV
+    IE --> PACK
+    SVC --> RMV
+</div></code></pre>
+<h3 id="why-ccli">Why C++/CLI?</h3>
+<p>The Autodesk FBX SDK is native C++. The app is C#/.NET. The bridge avoids exposing raw native pointers to the C# projects and gives the C# layer simple managed DTOs such as:</p>
+<ul>
+<li><code>FbxImportedScene</code></li>
+<li><code>FbxImportedMesh</code></li>
+<li><code>FbxImportedVertex</code></li>
+<li><code>FbxExportScene</code></li>
+<li><code>FbxExportMesh</code></li>
+<li><code>FbxExportBone</code></li>
+<li><code>FbxAnimationClip</code></li>
+<li><code>FbxAnimationFrame</code></li>
+</ul>
+<p>The C# side should never directly manipulate FBX SDK objects. All FBX SDK ownership, manager lifetime, scene loading, scene exporting, animation stack evaluation, and unit conversion belong in <code>FbxSdkBridge</code>.</p>
+<hr>
+<h2 id="3-required-local-setup">3. Required local setup</h2>
+<h3 id="31-install-autodesk-fbx-sdk">3.1 Install Autodesk FBX SDK</h3>
+<p>Install Autodesk FBX SDK 2020.3.9 at the default path:</p>
+<pre class="hljs"><code><div>C:\Program Files\Autodesk\FBX\FBX SDK\2020.3.9
+</div></code></pre>
+<p>Expected folders:</p>
+<pre class="hljs"><code><div>C:\Program Files\Autodesk\FBX\FBX SDK\2020.3.9\include
+C:\Program Files\Autodesk\FBX\FBX SDK\2020.3.9\lib\x64\debug
+C:\Program Files\Autodesk\FBX\FBX SDK\2020.3.9\lib\x64\release
+</div></code></pre>
+<p>Expected files:</p>
+<pre class="hljs"><code><div>libfbxsdk.lib
+libfbxsdk.dll
+</div></code></pre>
+<h3 id="32-visual-studio-workloads">3.2 Visual Studio workloads</h3>
+<p>Install:</p>
+<ul>
+<li>.NET desktop development;</li>
+<li>Desktop development with C++;</li>
+<li>MSVC v143 x64 build tools;</li>
+<li>C++/CLI support.</li>
+</ul>
+<p>The native bridge must be built as <strong>x64</strong>. Do not use AnyCPU for the native project.</p>
+<h3 id="33-override-the-sdk-path-when-needed">3.3 Override the SDK path when needed</h3>
+<p>Both the native bridge project and the app project use <code>FbxSdkRoot</code>.</p>
+<p>Default:</p>
+<pre class="hljs"><code><div><span class="hljs-tag">&lt;<span class="hljs-name">FbxSdkRoot</span> <span class="hljs-attr">Condition</span>=<span class="hljs-string">&quot;&#x27;$(FbxSdkRoot)&#x27;==&#x27;&#x27;&quot;</span>&gt;</span>C:\Program Files\Autodesk\FBX\FBX SDK\2020.3.9<span class="hljs-tag">&lt;/<span class="hljs-name">FbxSdkRoot</span>&gt;</span>
+</div></code></pre>
+<p>Override from MSBuild:</p>
+<pre class="hljs"><code><div>dotnet build .\AssetEditor.sln <span class="hljs-literal">-p</span>:FbxSdkRoot=<span class="hljs-string">&quot;D:\SDKs\Autodesk\FBX\FBX SDK\2020.3.9&quot;</span>
+</div></code></pre>
+<p>For Visual Studio, add the property in a local <code>.props</code> file or set it in the project environment.</p>
+<hr>
+<h2 id="4-solution-integration-points">4. Solution integration points</h2>
+<h3 id="41-solution-file">4.1 Solution file</h3>
+<p>The native project must be present in <code>AssetEditor.sln</code> as a Visual C++ project:</p>
+<pre class="hljs"><code><div>Native\FbxSdkBridge\FbxSdkBridge.vcxproj
+</div></code></pre>
+<h3 id="42-editorsimportexport-project-reference">4.2 Editors.ImportExport project reference</h3>
+<p><code>Editors.ImportExport.csproj</code> references the bridge:</p>
+<pre class="hljs"><code><div><span class="hljs-tag">&lt;<span class="hljs-name">ProjectReference</span> <span class="hljs-attr">Include</span>=<span class="hljs-string">&quot;..\..\..\Native\FbxSdkBridge\FbxSdkBridge.vcxproj&quot;</span> /&gt;</span>
+</div></code></pre>
+<p>This lets C# code use the managed C++/CLI namespace:</p>
+<pre class="hljs"><code><div><span class="hljs-keyword">using</span> AssetEditor.Native.FbxSdkBridge;
+</div></code></pre>
+<h3 id="43-asseteditor-runtime-copy">4.3 AssetEditor runtime copy</h3>
+<p><code>AssetEditor.csproj</code> copies the bridge runtime files into the app output folder:</p>
+<pre class="hljs"><code><div>FbxSdkBridge.dll
+FbxSdkBridge.pdb
+libfbxsdk.dll
+</div></code></pre>
+<p>This is required because <code>AssetEditor.exe</code> loads <code>Editors.ImportExport</code>, which loads <code>FbxSdkBridge.dll</code>, which in turn depends on <code>libfbxsdk.dll</code>.</p>
+<p>If <code>libfbxsdk.dll</code> is missing from the final output folder, FBX features will fail at runtime even if the solution compiles.</p>
+<hr>
+<h2 id="5-build-order">5. Build order</h2>
+<p>Recommended order:</p>
+<pre class="hljs"><code><div>1. Native/FbxSdkBridge
+2. Editors.ImportExport
+3. AssetEditor
+</div></code></pre>
+<p>From Visual Studio:</p>
+<ol>
+<li>Set solution platform to <code>x64</code>.</li>
+<li>Build <code>FbxSdkBridge</code>.</li>
+<li>Build <code>Editors.ImportExport</code>.</li>
+<li>Build <code>AssetEditor</code>.</li>
+</ol>
+<p>From command line:</p>
+<pre class="hljs"><code><div>msbuild .\Native\FbxSdkBridge\FbxSdkBridge.vcxproj /p:Configuration=Debug /p:Platform=x64
+msbuild .\Editors\ImportExportEditor\Editors.ImportExport\Editors.ImportExport.csproj /p:Configuration=Debug /p:Platform=x64
+msbuild .\AssetEditor\AssetEditor.csproj /p:Configuration=Debug /p:Platform=x64
+</div></code></pre>
+<hr>
+<h2 id="6-data-flow-rmv2---fbx">6. Data flow: RMV2 -&gt; FBX</h2>
+<pre><code class="language-mermaid"><div class="mermaid">sequenceDiagram
+    participant UI as RmvToFbxExporterViewModel
+    participant EXP as RmvToFbxExporter
+    participant SVC as AutodeskFbxService
+    participant BR as FbxSdkBridge
+    participant SDK as Autodesk FBX SDK
+
+    UI->>EXP: export selected RMV2
+    EXP->>SVC: ExportRmvToFbx(rmv, skeleton, anims, settings)
+    SVC->>SVC: CreateExportSceneFromRmv(...)
+    SVC->>BR: ExportScene(FbxExportScene)
+    BR->>SDK: create FBX scene, nodes, meshes, skin, materials, anim stacks
+    SDK-->>BR: write .fbx
+    BR-->>EXP: completed
+</div></code></pre>
+<p>Key conversion responsibilities:</p>
+<table>
+<thead>
+<tr>
+<th>Stage</th>
+<th>Responsibility</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>RmvToFbxExporter</code></td>
+<td>Resolve selected pack file, destination path, skeleton, animation files, user settings.</td>
+</tr>
+<tr>
+<td><code>AutodeskFbxService.CreateExportSceneFromRmv</code></td>
+<td>Convert RMV models, bones, materials, animation frames into bridge DTOs.</td>
+</tr>
+<tr>
+<td><code>FbxSdkBridge.ExportScene</code></td>
+<td>Create Autodesk FBX SDK scene, units, nodes, meshes, clusters, materials, textures, animation curves.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="61-units">6.1 Units</h3>
+<p>Total War skeleton exports are written in inch-style FBX units. This is intentional.</p>
+<p>Important rule:</p>
+<ul>
+<li>internal RMV / <code>.anim</code> translation values are treated as game/internal units;</li>
+<li>exported FBX uses inch scale for Blender-friendly Total War skeleton display;</li>
+<li>imported animation translations must be converted back if Blender preserves inch numeric values in a meter scene.</li>
+</ul>
+<p>Do not scatter unit conversion across importers. Keep unit logic centralized in <code>FbxSdkBridge</code> and <code>AutodeskFbxService</code>.</p>
+<h3 id="62-mesh-orientation">6.2 Mesh orientation</h3>
+<p>The export settings expose orientation options because Blender and Total War do not use the same practical convention for editing skeletons and meshes.</p>
+<p>Current defaults are chosen for Blender editing. When adding another DCC target later, do not hardcode another branch directly in exporters. Add a named profile.</p>
+<p>Recommended future structure:</p>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">sealed</span> <span class="hljs-keyword">record</span> <span class="hljs-title">FbxCoordinateProfile</span>(<span class="hljs-params">
+    <span class="hljs-built_in">bool</span> MirrorMeshX,
+    <span class="hljs-built_in">bool</span> MirrorSkeletonX,
+    <span class="hljs-built_in">bool</span> MirrorAnimationX,
+    <span class="hljs-built_in">bool</span> ExportInches,
+    <span class="hljs-built_in">bool</span> BlenderFriendlyUvs</span>)</span>;
+</div></code></pre>
+<hr>
+<h2 id="7-data-flow-fbx---rmv2">7. Data flow: FBX -&gt; RMV2</h2>
+<pre><code class="language-mermaid"><div class="mermaid">sequenceDiagram
+    participant UI as FbxToRmvImporterViewModel
+    participant IMP as FbxImporter
+    participant SVC as AutodeskFbxService
+    participant BR as FbxSdkBridge
+    participant PACK as PackFileService
+
+    UI->>IMP: import FBX with settings
+    IMP->>PACK: find target CA skeleton unless custom_skeleton is checked
+    IMP->>SVC: ImportScene(path)
+    SVC->>BR: ImportScene(path)
+    BR-->>SVC: FbxImportedScene
+    SVC->>SVC: CreateRmvFromImportedFbxScene(...)
+    SVC-->>IMP: RmvFile
+    IMP->>PACK: save .rigid_model_v2 into editable pack
+    opt Import animation stack
+        IMP->>SVC: ConvertFbxAnimationToAnimFile(..., targetSkeleton)
+        SVC->>BR: ExtractFirstAnimationClip(...)
+        SVC->>SVC: remap FBX bones by name to CA skeleton order
+        IMP->>PACK: save .anim into editable pack
+    end
+</div></code></pre>
+<h3 id="71-skeleton-matching">7.1 Skeleton matching</h3>
+<p>Default behavior must search <strong>CA / All Game Packs</strong> first.</p>
+<p>The editable mod pack should not be used as the default skeleton source. Custom skeletons are only included when the <code>custom_skeleton</code> option is enabled.</p>
+<p>Rationale:</p>
+<ul>
+<li>most imports should target the game's real skeleton order;</li>
+<li><code>.anim</code> files are index-based, so bone order matters;</li>
+<li>using the imported FBX hierarchy order breaks animation playback;</li>
+<li>using a mod pack skeleton by accident can silently corrupt the result.</li>
+</ul>
+<h3 id="72-bone-remap-rule">7.2 Bone remap rule</h3>
+<p>For <code>.anim</code> import:</p>
+<pre class="hljs"><code><div>Never write dynamic frames in FBX traversal order.
+Always write frames in the target CA skeleton order.
+Map FBX curves by normalized bone name to target skeleton bone index.
+</div></code></pre>
+<p>This is the key rule that fixed the animation roundtrip.</p>
+<hr>
+<h2 id="8-texture-and-material-roundtrip">8. Texture and material roundtrip</h2>
+<h3 id="81-export-behavior">8.1 Export behavior</h3>
+<p>When texture export is enabled:</p>
+<ul>
+<li>referenced RMV textures are found in loaded packs;</li>
+<li>DDS files are copied next to the FBX into a <code>&lt;fbx-name&gt;_textures/</code> folder;</li>
+<li>FBX materials receive standard texture links;</li>
+<li>FBX materials also receive custom properties named like <code>AE_Texture_&lt;TextureType&gt;</code>.</li>
+</ul>
+<p>The custom properties help preserve exact RMV texture slot intent through Blender, because Blender may not preserve every FBX channel exactly as authored.</p>
+<h3 id="82-import-behavior">8.2 Import behavior</h3>
+<p>When material import is enabled:</p>
+<ul>
+<li>standard FBX material texture channels are read;</li>
+<li><code>AE_Texture_&lt;TextureType&gt;</code> custom properties are read;</li>
+<li>DDS files are imported directly;</li>
+<li>PNG/JPG/etc. are converted through the existing PNG-to-DDS importer;</li>
+<li>material texture slots are filled under the destination texture folder.</li>
+</ul>
+<h3 id="83-texture-slot-mapping">8.3 Texture slot mapping</h3>
+<p>Keep texture type mapping in one place. Do not duplicate string mapping in the bridge and in C#.</p>
+<p>Recommended approach:</p>
+<pre class="hljs"><code><div><span class="hljs-keyword">private</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">readonly</span> Dictionary&lt;<span class="hljs-built_in">string</span>, TextureType&gt; TextureAliases = <span class="hljs-keyword">new</span>(StringComparer.OrdinalIgnoreCase)
+{
+    [<span class="hljs-string">&quot;Diffuse&quot;</span>] = TextureType.Diffuse,
+    [<span class="hljs-string">&quot;BaseColor&quot;</span>] = TextureType.Diffuse,
+    [<span class="hljs-string">&quot;Normal&quot;</span>] = TextureType.Normal,
+    [<span class="hljs-string">&quot;Specular&quot;</span>] = TextureType.Specular,
+};
+</div></code></pre>
+<p>When adding new slots, add:</p>
+<ol>
+<li>RMV <code>TextureType</code> mapping;</li>
+<li>export custom property name;</li>
+<li>FBX channel fallback;</li>
+<li>import path normalization;</li>
+<li>a roundtrip test.</li>
+</ol>
+<hr>
+<h2 id="9-animation-exportimport-rules">9. Animation export/import rules</h2>
+<h3 id="91-frame-count-and-duration-are-separate">9.1 Frame count and duration are separate</h3>
+<p>Do not assume:</p>
+<pre class="hljs"><code><div>AnimationTotalPlayTimeInSec == (frameCount - 1) / frameRate
+</div></code></pre>
+<p>Real Total War <code>.anim</code> files may have a fractional tail after the last sampled frame.</p>
+<p>Correct behavior:</p>
+<ul>
+<li>preserve the original <code>.anim</code> duration when exporting <code>.anim</code> -&gt; FBX;</li>
+<li>set FBX stack time span to that duration;</li>
+<li>when importing FBX -&gt; <code>.anim</code>, use the FBX stack duration if available;</li>
+<li>only fallback to <code>(frameCount - 1) / frameRate</code> when no duration metadata exists.</li>
+</ul>
+<h3 id="92-quaternion-handling">9.2 Quaternion handling</h3>
+<p>A quaternion and its negated equivalent represent the same orientation. However, sign flips can hurt interpolation in some tools.</p>
+<p>Recommended future hardening:</p>
+<ul>
+<li>normalize all quaternions;</li>
+<li>optionally enforce continuity frame-to-frame by flipping a quaternion when its dot product with the previous frame is negative;</li>
+<li>do not use this as a substitute for correct bone remapping.</li>
+</ul>
+<h3 id="93-root-motion">9.3 Root motion</h3>
+<p>Root motion usually lives on one of:</p>
+<pre class="hljs"><code><div>animroot
+root
+</div></code></pre>
+<p>When mirroring animations or changing coordinate profiles, root translation may need a separate axis inversion rule. Keep this explicit and configurable.</p>
+<hr>
+<h2 id="10-supporting-additional-rmv2-rigid-model-types">10. Supporting additional RMV2 rigid model types</h2>
+<p>The current code handles the main v7/v8-era static and weighted/cinematic paths. To support additional RMV2 model types, add a profile-driven conversion instead of adding random <code>if</code> blocks.</p>
+<h3 id="101-identify-the-target-model-type">10.1 Identify the target model type</h3>
+<p>For every new model type, document:</p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>What to check</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>RMV version</td>
+<td>Must be v7/v8 for this solution. Reject older versions.</td>
+</tr>
+<tr>
+<td>Vertex format</td>
+<td>Static, weighted, cinematic, cloth, decal, terrain, etc.</td>
+</tr>
+<tr>
+<td>Material header</td>
+<td><code>ModelMaterialEnum</code>, material class, shader expectations.</td>
+</tr>
+<tr>
+<td>Bone usage</td>
+<td>No skeleton, skeleton with skin weights, attachment-only, or special matrix palette.</td>
+</tr>
+<tr>
+<td>Texture slots</td>
+<td>Which RMV texture types are required and optional.</td>
+</tr>
+<tr>
+<td>Index limits</td>
+<td>Whether the mesh still fits RMV2 ushort index limits.</td>
+</tr>
+<tr>
+<td>Tangents</td>
+<td>Whether <code>TangentBasisCalculator</code> is valid for the type.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="102-add-a-model-conversion-profile">10.2 Add a model conversion profile</h3>
+<p>Recommended pattern:</p>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">internal</span> <span class="hljs-keyword">sealed</span> <span class="hljs-keyword">record</span> <span class="hljs-title">RmvFbxModelProfile</span>(<span class="hljs-params">
+    <span class="hljs-built_in">string</span> Name,
+    RmvVersionEnum Version,
+    VertexFormat VertexFormat,
+    ModelMaterialEnum MaterialId,
+    <span class="hljs-built_in">bool</span> RequiresSkeleton,
+    <span class="hljs-built_in">bool</span> RequiresFourWeights,
+    <span class="hljs-built_in">bool</span> SupportsTextureRoundtrip,
+    <span class="hljs-built_in">bool</span> SupportsAnimationRoundtrip</span>)</span>;
+</div></code></pre>
+<p>Then route conversion through a resolver:</p>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">private</span> <span class="hljs-keyword">static</span> RmvFbxModelProfile <span class="hljs-title">ResolveProfile</span>(<span class="hljs-params">RmvModel model</span>)</span>
+{
+    <span class="hljs-comment">// Inspect RMV version, material id, vertex format and skeleton usage.</span>
+    <span class="hljs-comment">// Return a supported profile or throw a clear NotSupportedException.</span>
+}
+</div></code></pre>
+<h3 id="103-export-implementation-checklist">10.3 Export implementation checklist</h3>
+<p>When exporting a new model type:</p>
+<ol>
+<li>Confirm the RMV model can be represented as triangular FBX mesh data.</li>
+<li>Convert positions, normals, UVs, indices.</li>
+<li>Preserve winding order under mirror settings.</li>
+<li>Convert material metadata into a stable FBX material name and custom properties.</li>
+<li>Export texture references where possible.</li>
+<li>Export skin clusters only if the type is actually skinned.</li>
+<li>Preserve LOD index in mesh names: <code>lod0_...</code>, <code>lod1_...</code>.</li>
+<li>Reject unsupported vertex layouts with an explicit exception.</li>
+</ol>
+<h3 id="104-import-implementation-checklist">10.4 Import implementation checklist</h3>
+<p>When importing to a new model type:</p>
+<ol>
+<li>Decide the target RMV profile before creating vertices.</li>
+<li>Validate the FBX mesh has enough data: positions, normals, UVs.</li>
+<li>If skinned, resolve the target CA skeleton first.</li>
+<li>Map FBX bone weights by bone name to target skeleton index.</li>
+<li>Enforce the exact weight count expected by the RMV writer.</li>
+<li>Build the correct material header type.</li>
+<li>Normalize texture pack paths.</li>
+<li>Recalculate tangents and bounding boxes.</li>
+<li>Recalculate RMV offsets.</li>
+<li>Save to the editable pack only after the conversion succeeds.</li>
+</ol>
+<h3 id="105-handling-v7v8-only">10.5 Handling v7/v8 only</h3>
+<p>Add early guards. Do not let unsupported files fail deep inside vertex writers.</p>
+<p>Example policy:</p>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">private</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">void</span> <span class="hljs-title">EnsureSupportedRmvVersion</span>(<span class="hljs-params">RmvFile rmvFile</span>)</span>
+{
+    <span class="hljs-keyword">if</span> (rmvFile.Header.Version <span class="hljs-keyword">is</span> <span class="hljs-keyword">not</span> RmvVersionEnum.RMV2_V7 <span class="hljs-keyword">and</span> <span class="hljs-keyword">not</span> RmvVersionEnum.RMV2_V8)
+        <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> FbxExportNotSupportedException(<span class="hljs-string">$&quot;FBX export supports only RMV2 v7/v8. Found <span class="hljs-subst">{rmvFile.Header.Version}</span>.&quot;</span>);
+}
+</div></code></pre>
+<p>Use the same idea on import when the target game or output format implies an older model version.</p>
+<hr>
+<h2 id="11-error-handling-policy">11. Error handling policy</h2>
+<p>Errors should be clear and close to the failing feature.</p>
+<p>Good examples:</p>
+<pre class="hljs"><code><div>FBX import failed: no mesh found in scene.
+FBX animation import skipped: no matching CA skeleton was found.
+FBX export not supported for RMV version RMV2_V5.
+FBX import failed: cinematic vertices require exactly four weights.
+</div></code></pre>
+<p>Bad examples:</p>
+<pre class="hljs"><code><div>External component has thrown an exception.
+Object reference not set to an instance of an object.
+Index was outside the bounds of the array.
+</div></code></pre>
+<p>Bridge public entry points should wrap native exceptions and throw managed exceptions with useful messages.</p>
+<hr>
+<h2 id="12-testing-matrix">12. Testing matrix</h2>
+<p>Before calling a new RMV2 type supported, test all rows that apply:</p>
+<table>
+<thead>
+<tr>
+<th>Test</th>
+<th style="text-align:right">Export</th>
+<th style="text-align:right">Import</th>
+<th style="text-align:right">Roundtrip</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Static prop, one material</td>
+<td style="text-align:right">Yes</td>
+<td style="text-align:right">Yes</td>
+<td style="text-align:right">Yes</td>
+<td>No skeleton.</td>
+</tr>
+<tr>
+<td>Static prop, multiple materials</td>
+<td style="text-align:right">Yes</td>
+<td style="text-align:right">Yes</td>
+<td style="text-align:right">Yes</td>
+<td>Confirms material split.</td>
+</tr>
+<tr>
+<td>Multi-LOD model</td>
+<td style="text-align:right">Yes</td>
+<td style="text-align:right">Yes</td>
+<td style="text-align:right">Yes</td>
+<td>Confirms <code>lodX_</code> grouping.</td>
+</tr>
+<tr>
+<td>Weighted character mesh</td>
+<td style="text-align:right">Yes</td>
+<td style="text-align:right">Yes</td>
+<td style="text-align:right">Yes</td>
+<td>Confirms skeleton and weights.</td>
+</tr>
+<tr>
+<td>Cinematic four-weight mesh</td>
+<td style="text-align:right">Yes</td>
+<td style="text-align:right">Yes</td>
+<td style="text-align:right">Yes</td>
+<td>Confirms writer expectations.</td>
+</tr>
+<tr>
+<td>Texture DDS roundtrip</td>
+<td style="text-align:right">Yes</td>
+<td style="text-align:right">Yes</td>
+<td style="text-align:right">Yes</td>
+<td>Confirms pack texture paths.</td>
+</tr>
+<tr>
+<td>PNG/JPG import to DDS</td>
+<td style="text-align:right">No</td>
+<td style="text-align:right">Yes</td>
+<td style="text-align:right">Partial</td>
+<td>Depends on existing converter.</td>
+</tr>
+<tr>
+<td><code>.anim</code> only export</td>
+<td style="text-align:right">Yes</td>
+<td style="text-align:right">No</td>
+<td style="text-align:right">No</td>
+<td>Export selected <code>.anim</code>.</td>
+</tr>
+<tr>
+<td>FBX animation stack import</td>
+<td style="text-align:right">No</td>
+<td style="text-align:right">Yes</td>
+<td style="text-align:right">Yes</td>
+<td>Requires matching CA skeleton.</td>
+</tr>
+<tr>
+<td>Blender edit roundtrip</td>
+<td style="text-align:right">Yes</td>
+<td style="text-align:right">Yes</td>
+<td style="text-align:right">Yes</td>
+<td>Main user scenario.</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="13-recommended-future-structure-for-scaling">13. Recommended future structure for scaling</h2>
+<p>As support grows, split <code>AutodeskFbxService</code> into smaller focused classes. Avoid turning it into a permanent god class.</p>
+<p>Suggested structure:</p>
+<pre class="hljs"><code><div>Common/FbxSdk/
+  AutodeskFbxService.cs
+  FbxSceneExportBuilder.cs
+  FbxSceneImportConverter.cs
+  FbxAnimationExportBuilder.cs
+  FbxAnimationImportConverter.cs
+  FbxMaterialTextureMapper.cs
+  FbxCoordinateProfile.cs
+  RmvFbxModelProfile.cs
+  RmvFbxProfileResolver.cs
+</div></code></pre>
+<p>Target dependency direction:</p>
+<pre><code class="language-mermaid"><div class="mermaid">flowchart LR
+    UI[Import/Export UI]
+    EXPORTERS[Importers / Exporters]
+    SERVICE[AutodeskFbxService facade]
+    BUILDERS[Builders and converters]
+    PROFILES[Profiles and mappers]
+    BRIDGE[FbxSdkBridge]
+
+    UI --> EXPORTERS
+    EXPORTERS --> SERVICE
+    SERVICE --> BUILDERS
+    BUILDERS --> PROFILES
+    BUILDERS --> BRIDGE
+</div></code></pre>
+<p>Keep <code>AutodeskFbxService</code> as the facade used by the rest of the app. Move details into testable helpers.</p>
+<hr>
+<h2 id="14-common-build-failures">14. Common build failures</h2>
+<h3 id="libfbxsdkdll-missing-at-runtime"><code>libfbxsdk.dll</code> missing at runtime</h3>
+<p>Cause:</p>
+<ul>
+<li>runtime DLL not copied to <code>AssetEditor\bin\...</code>;</li>
+<li>wrong <code>FbxSdkRoot</code>;</li>
+<li>building AnyCPU instead of x64.</li>
+</ul>
+<p>Fix:</p>
+<ul>
+<li>build x64;</li>
+<li>verify <code>FbxSdkRoot</code>;</li>
+<li>rebuild <code>FbxSdkBridge</code>;</li>
+<li>verify <code>libfbxsdk.dll</code> is next to <code>AssetEditor.exe</code>.</li>
+</ul>
+<h3 id="lnk2019-unresolved-fbx-sdk-symbols"><code>LNK2019</code> unresolved FBX SDK symbols</h3>
+<p>Cause:</p>
+<ul>
+<li><code>libfbxsdk.lib</code> not linked;</li>
+<li>wrong library directory;</li>
+<li><code>FBXSDK_SHARED</code> missing.</li>
+</ul>
+<p>Fix:</p>
+<ul>
+<li>check <code>FbxSdkBridge.vcxproj</code> include/library dirs;</li>
+<li>confirm <code>FBXSDK_SHARED</code> is defined;</li>
+<li>confirm debug builds link against <code>lib\x64\debug</code> and release against <code>lib\x64\release</code>.</li>
+</ul>
+<h3 id="fbxtakeinfocreate-or-fbxdocumentinfoaddtakeinfo-not-found"><code>FbxTakeInfo::Create</code> or <code>FbxDocumentInfo::AddTakeInfo</code> not found</h3>
+<p>Cause:</p>
+<ul>
+<li>those APIs are not available in the installed FBX SDK 2020.3.9.</li>
+</ul>
+<p>Fix:</p>
+<ul>
+<li>do not use those APIs;</li>
+<li>set animation duration via <code>FbxAnimStack</code> start/stop properties and scene timeline span.</li>
+</ul>
+<h3 id="cs0006-missing-project-dlls"><code>CS0006</code> missing project DLLs</h3>
+<p>Cause:</p>
+<ul>
+<li>usually a cascade from an earlier real compile error.</li>
+</ul>
+<p>Fix:</p>
+<ul>
+<li>fix the first non-<code>CS0006</code> error;</li>
+<li>rebuild the failed project first.</li>
+</ul>
+<hr>
+<h2 id="15-pull-request-checklist">15. Pull request checklist</h2>
+<p>Before merging an FBX extension:</p>
+<ul>
+<li><input type="checkbox" id="checkbox0"><label for="checkbox0">Builds in Debug x64.</label></li>
+<li><input type="checkbox" id="checkbox1"><label for="checkbox1">Builds in Release x64.</label></li>
+<li><input type="checkbox" id="checkbox2"><label for="checkbox2"><code>FbxSdkBridge.dll</code> is copied to app output.</label></li>
+<li><input type="checkbox" id="checkbox3"><label for="checkbox3"><code>libfbxsdk.dll</code> is copied to app output.</label></li>
+<li><input type="checkbox" id="checkbox4"><label for="checkbox4">No Autodesk binaries are committed.</label></li>
+<li><input type="checkbox" id="checkbox5"><label for="checkbox5">Unsupported RMV versions fail early with a clear message.</label></li>
+<li><input type="checkbox" id="checkbox6"><label for="checkbox6">New model type has a documented profile.</label></li>
+<li><input type="checkbox" id="checkbox7"><label for="checkbox7">Texture mappings are centralized.</label></li>
+<li><input type="checkbox" id="checkbox8"><label for="checkbox8">Bone remapping uses target skeleton order, not FBX hierarchy order.</label></li>
+<li><input type="checkbox" id="checkbox9"><label for="checkbox9">Animation duration is preserved independently of frame count.</label></li>
+<li><input type="checkbox" id="checkbox10"><label for="checkbox10">Blender roundtrip was manually tested.</label></li>
+<li><input type="checkbox" id="checkbox11"><label for="checkbox11">Import failure does not leave half-created files in the editable pack.</label></li>
+</ul>
+
+</body>
+</html>

@@ -15,6 +15,7 @@
         SuperView_Editor,
         AnimationRetarget_Editor,
         Texture_Editor,
+        TextureTools_Editor,
         AnimationKeyFrame_Editor,
         CampaginAnimation_Editor,
         AnimationPack_Editor,

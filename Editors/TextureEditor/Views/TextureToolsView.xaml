@@ -1,0 +1,132 @@
+<UserControl x:Class="TextureEditor.Views.TextureToolsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             mc:Ignorable="d"
+             d:DesignHeight="650" d:DesignWidth="1050">
+    <DockPanel Margin="8">
+        <GroupBox DockPanel.Dock="Top" Header="Paths" Margin="0,0,0,8">
+            <Grid Margin="8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="120"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="texconv.exe" VerticalAlignment="Center" Margin="0,0,8,4"/>
+                <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding TexconvPath, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,8,4"/>
+                <Button Grid.Row="0" Grid.Column="2" Content="Browse" Command="{Binding BrowseTexconvCommand}" Margin="0,0,8,4"/>
+
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="Input" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding InputPath, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,8,0"/>
+                <Button Grid.Row="1" Grid.Column="2" Content="File" Command="{Binding BrowseFileCommand}" Margin="0,0,8,0"/>
+                <Button Grid.Row="1" Grid.Column="3" Content="Folder" Command="{Binding BrowseFolderCommand}"/>
+            </Grid>
+        </GroupBox>
+
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="2*"/>
+                <ColumnDefinition Width="3*"/>
+            </Grid.ColumnDefinitions>
+
+            <TabControl Grid.Column="0" Margin="0,0,8,0">
+                <TabItem Header="DDS to PNG">
+                    <StackPanel Margin="10">
+                        <TextBlock Text="Convert DDS files to PNG files. Folder mode scans recursively when enabled." TextWrapping="Wrap" Margin="0,0,0,8"/>
+                        <CheckBox Content="Recursive folder scan" IsChecked="{Binding Recursive}" Margin="0,0,0,4"/>
+                        <CheckBox Content="Output beside input" IsChecked="{Binding OutputBesideInput}" Margin="0,0,0,4"/>
+                        <TextBlock Text="Output folder name" Margin="0,8,0,2"/>
+                        <TextBox Text="{Binding OutputFolderName, UpdateSourceTrigger=PropertyChanged}" ToolTip="Leave empty to use ConvPNG."/>
+                        <Button Content="Convert DDS to PNG" Command="{Binding ConvertDdsToPngCommand}" Margin="0,12,0,0"/>
+                    </StackPanel>
+                </TabItem>
+
+                <TabItem Header="PNG to DDS">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <StackPanel Margin="10">
+                            <TextBlock Text="Convert PNG files to Total War DDS files. Auto mode detects _n, _material_map, _mask, _base_colour and similar suffixes." TextWrapping="Wrap" Margin="0,0,0,8"/>
+                            <CheckBox Content="Recursive folder scan" IsChecked="{Binding Recursive}" Margin="0,0,0,4"/>
+                            <CheckBox Content="Overwrite existing DDS" IsChecked="{Binding Overwrite}" Margin="0,0,0,4"/>
+                            <CheckBox Content="Output beside input" IsChecked="{Binding OutputBesideInput}" Margin="0,0,0,4"/>
+                            <TextBlock Text="Output folder name" Margin="0,8,0,2"/>
+                            <TextBox Text="{Binding OutputFolderName, UpdateSourceTrigger=PropertyChanged}" ToolTip="Leave empty to use ConvDDS."/>
+                            <TextBlock Text="Texture kind" Margin="0,8,0,2"/>
+                            <ComboBox ItemsSource="{Binding TextureKinds}" SelectedItem="{Binding TextureKind}"/>
+                            <CheckBox Content="Convert blue normal maps to TW orange normal maps" IsChecked="{Binding ConvertBlueNormalToTwOrangeNormal}" Margin="0,8,0,4"/>
+                            <TextBlock Text="Optional PNG transform before conversion" Margin="0,8,0,2"/>
+                            <TextBox Text="{Binding RotationDegrees, UpdateSourceTrigger=PropertyChanged}" ToolTip="Only 0, 90, 180 and 270 are supported."/>
+                            <CheckBox Content="Mirror X" IsChecked="{Binding MirrorX}" Margin="0,8,0,4"/>
+                            <CheckBox Content="Mirror Y" IsChecked="{Binding MirrorY}" Margin="0,0,0,4"/>
+                            <CheckBox Content="Adjust TW-orange normal channels when mirroring" IsChecked="{Binding AdjustTwNormalChannelsForMirror}" Margin="0,0,0,4"/>
+                            <Button Content="Convert PNG to DDS" Command="{Binding ConvertPngToDdsCommand}" Margin="0,12,0,0"/>
+                        </StackPanel>
+                    </ScrollViewer>
+                </TabItem>
+
+                <TabItem Header="Transform DDS">
+                    <StackPanel Margin="10">
+                        <TextBlock Text="Rotate or mirror DDS files by converting them through a temporary PNG and writing DDS back." TextWrapping="Wrap" Margin="0,0,0,8"/>
+                        <CheckBox Content="Recursive folder scan" IsChecked="{Binding Recursive}" Margin="0,0,0,4"/>
+                        <CheckBox Content="Overwrite existing DDS" IsChecked="{Binding Overwrite}" Margin="0,0,0,4"/>
+                        <CheckBox Content="Output beside input" IsChecked="{Binding OutputBesideInput}" Margin="0,0,0,4"/>
+                        <TextBlock Text="Texture kind" Margin="0,8,0,2"/>
+                        <ComboBox ItemsSource="{Binding TextureKinds}" SelectedItem="{Binding TextureKind}"/>
+                        <TextBlock Text="Rotation degrees" Margin="0,8,0,2"/>
+                        <TextBox Text="{Binding RotationDegrees, UpdateSourceTrigger=PropertyChanged}"/>
+                        <CheckBox Content="Mirror X" IsChecked="{Binding MirrorX}" Margin="0,8,0,4"/>
+                        <CheckBox Content="Mirror Y" IsChecked="{Binding MirrorY}" Margin="0,0,0,4"/>
+                        <CheckBox Content="Adjust TW-orange normal channels when mirroring" IsChecked="{Binding AdjustTwNormalChannelsForMirror}" Margin="0,0,0,4"/>
+                        <Button Content="Transform DDS" Command="{Binding TransformDdsCommand}" Margin="0,12,0,0"/>
+                    </StackPanel>
+                </TabItem>
+
+                <TabItem Header="Rename">
+                    <StackPanel Margin="10">
+                        <TextBlock Text="Replace text in file names. Folder mode can recurse." TextWrapping="Wrap" Margin="0,0,0,8"/>
+                        <CheckBox Content="Recursive folder scan" IsChecked="{Binding Recursive}" Margin="0,0,0,4"/>
+                        <CheckBox Content="Dry run" IsChecked="{Binding DryRun}" Margin="0,0,0,4"/>
+                        <TextBlock Text="Text to replace" Margin="0,8,0,2"/>
+                        <TextBox Text="{Binding RenameOldText, UpdateSourceTrigger=PropertyChanged}"/>
+                        <TextBlock Text="New text" Margin="0,8,0,2"/>
+                        <TextBox Text="{Binding RenameNewText, UpdateSourceTrigger=PropertyChanged}"/>
+                        <Button Content="Rename files" Command="{Binding RenameFilesCommand}" Margin="0,12,0,0"/>
+                    </StackPanel>
+                </TabItem>
+
+                <TabItem Header="Delete">
+                    <StackPanel Margin="10">
+                        <TextBlock Text="Delete PNG or DDS files with optional normal-map filtering. Dry run is enabled by default." TextWrapping="Wrap" Margin="0,0,0,8"/>
+                        <CheckBox Content="Recursive folder scan" IsChecked="{Binding Recursive}" Margin="0,0,0,4"/>
+                        <CheckBox Content="Dry run" IsChecked="{Binding DryRun}" Margin="0,0,0,4"/>
+                        <TextBlock Text="Extension" Margin="0,8,0,2"/>
+                        <TextBox Text="{Binding DeleteExtension, UpdateSourceTrigger=PropertyChanged}"/>
+                        <CheckBox Content="Include normal maps (_n / _normal)" IsChecked="{Binding DeleteNormals}" Margin="0,8,0,4"/>
+                        <CheckBox Content="Include other maps" IsChecked="{Binding DeleteOtherMaps}" Margin="0,0,0,4"/>
+                        <Button Content="Delete matching files" Command="{Binding DeleteFilesCommand}" Margin="0,12,0,0"/>
+                    </StackPanel>
+                </TabItem>
+
+                <TabItem Header="Blender">
+                    <StackPanel Margin="10">
+                        <TextBlock Text="Helper script from the old Python tools. This removes vertex groups from selected mesh objects in Blender." TextWrapping="Wrap" Margin="0,0,0,8"/>
+                        <Button Content="Copy remove vertex groups script" Command="{Binding CopyBlenderRemoveVertexGroupsScriptCommand}"/>
+                    </StackPanel>
+                </TabItem>
+            </TabControl>
+
+            <GroupBox Grid.Column="1" Header="Log">
+                <DockPanel Margin="8">
+                    <Button DockPanel.Dock="Top" HorizontalAlignment="Right" Content="Clear" Command="{Binding ClearLogCommand}" Margin="0,0,0,8"/>
+                    <ListBox ItemsSource="{Binding LogLines}" FontFamily="Consolas" HorizontalContentAlignment="Stretch"/>
+                </DockPanel>
+            </GroupBox>
+        </Grid>
+    </DockPanel>
+</UserControl>

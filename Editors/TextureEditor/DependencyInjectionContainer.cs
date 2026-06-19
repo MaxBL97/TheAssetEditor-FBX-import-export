@@ -1,4 +1,5 @@
 ﻿using Editors.TextureEditor.ViewModels;
+using Editors.TextureEditor.TextureTools;
 using Microsoft.Extensions.DependencyInjection;
 using Shared.Core.DependencyInjection;
 using Shared.Core.DevConfig;
@@ -15,6 +16,9 @@ namespace Editors.TextureEditor
             serviceCollection.AddTransient<TextureEditorViewModel>();
             serviceCollection.AddTransient<TextureBuilder>();  
             serviceCollection.AddTransient<IEditorInterface, TextureEditorViewModel>();
+            serviceCollection.AddTransient<TextureToolsView>();
+            serviceCollection.AddTransient<TextureToolsViewModel>();
+            serviceCollection.AddTransient<TextureToolsService>();
 
             RegisterAllAsInterface<IDeveloperConfiguration>(serviceCollection, ServiceLifetime.Transient);
         }
@@ -26,6 +30,11 @@ namespace Editors.TextureEditor
                 .AddExtention(".dds", EditorPriorites.Default)
                 .AddExtention(".png", EditorPriorites.Default)
                 .AddExtention(".jpeg", EditorPriorites.Default)
+                .Build(factory);
+
+            EditorInfoBuilder
+                .Create<TextureToolsViewModel, TextureToolsView>(EditorEnums.TextureTools_Editor)
+                .AddToToolbar("Texture/File Tools")
                 .Build(factory);
         }
     }
