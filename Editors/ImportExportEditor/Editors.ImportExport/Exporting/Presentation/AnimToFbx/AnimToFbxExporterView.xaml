@@ -1,0 +1,27 @@
+<UserControl x:Class="Editors.ImportExport.Exporting.Presentation.AnimToFbx.AnimToFbxExporterView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             mc:Ignorable="d"
+             d:DesignHeight="110" d:DesignWidth="700">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="auto"/>
+            <ColumnDefinition Width="auto"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <Grid.RowDefinitions>
+            <RowDefinition Height="25"/>
+            <RowDefinition Height="auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0" Grid.Column="0" Text="Blender-friendly orientation" VerticalAlignment="Center"/>
+        <TextBlock Grid.Row="0" Grid.Column="1" Text=" : " VerticalAlignment="Center"/>
+        <CheckBox Grid.Row="0" Grid.Column="2" HorizontalAlignment="Left" IsChecked="{Binding BlenderFriendlyOrientation, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"/>
+
+        <TextBlock Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3" TextWrapping="Wrap" Margin="0,8,0,0"
+                   Text="Exports the selected .anim as a FBX animation through Autodesk FBX SDK. The matching skeleton .anim must be loaded from the game packs. Enable Blender-friendly orientation to test the experimental handedness correction for Blender roundtrips."/>
+    </Grid>
+</UserControl>

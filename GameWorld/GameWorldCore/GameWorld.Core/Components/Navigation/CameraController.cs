@@ -1,4 +1,4 @@
-﻿using GameWorld.Core.Components.Input;
+using GameWorld.Core.Components.Input;
 using GameWorld.Core.Components.Rendering;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
@@ -70,10 +70,14 @@ namespace GameWorld.Core.Components.Navigation
 
             if (controlMode == CameraControlMode.BlenderStyle)
             {
-                // Blender-style: Middle mouse button navigation (no Alt required)
+                // Blender-style: Middle mouse button navigation (no Alt required).
+                // Do not keep the camera as mouse owner after the middle button is released,
+                // otherwise the transform gizmo cannot start a later drag operation.
                 if (isMiddleMouseDown)
                 {
-                    // Take ownership for camera navigation (overrides other components)
+                    if (!mouse.IsMouseOwner(this))
+                        return;
+
                     mouse.MouseOwner = this;
 
                     if (isShiftDown)
@@ -90,6 +94,12 @@ namespace GameWorld.Core.Components.Navigation
 
                         _arcBallCamera.CurrentProjectionType = ProjectionType.Perspective;
                     }
+                }
+                else if (mouse.MouseOwner == this)
+                {
+                    mouse.MouseOwner = null;
+                    mouse.ClearStates();
+                    return;
                 }
             }
             else

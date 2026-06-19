@@ -25,7 +25,7 @@ namespace Editors.ImportExport.Importing
 
         public bool CanImportFile(PackFile filePath)
         {
-            if (FileExtensionHelper.IsGltfFile(filePath.Name)) // mess to make sure the extension is case insensitive
+            if ((FileExtensionHelper.IsGltfFile(filePath.Name) || FileExtensionHelper.IsFbxFile(filePath.Name))) // mess to make sure the extension is case insensitive
             {
                 return true;
             }

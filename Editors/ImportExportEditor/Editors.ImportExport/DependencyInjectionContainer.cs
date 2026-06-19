@@ -1,4 +1,11 @@
-﻿using Editors.ImportExport.Exporting;
+using Editors.ImportExport.Exporting.Presentation.AnimToFbx;
+using Editors.ImportExport.Exporting.Exporters.AnimToFbx;
+using Editors.ImportExport.Importing.Presentation.FbxToRmv;
+using Editors.ImportExport.Importing.Importers.FbxToRmv;
+using Editors.ImportExport.Exporting.Presentation.RmvToFbx;
+using Editors.ImportExport.Exporting.Exporters.RmvToFbx;
+using Editors.ImportExport.Common.FbxSdk;
+using Editors.ImportExport.Exporting;
 using Editors.ImportExport.Exporting.Exporters;
 using Editors.ImportExport.Exporting.Exporters.DdsToMaterialPng;
 using Editors.ImportExport.Exporting.Exporters.DdsToNormalPng;
@@ -27,6 +34,8 @@ namespace Editors.ImportExport
     {
         public override void Register(IServiceCollection services)
         {
+            services.AddSingleton<AutodeskFbxService>();
+
             // Exporter ViewModels
             RegisterWindow<ExportWindow>(services);
             services.AddTransient<ExporterCoreViewModel>();
@@ -35,6 +44,8 @@ namespace Editors.ImportExport
             services.AddTransient<IExporterViewModel, DdsToNormalPngViewModel>();
             services.AddTransient<IExporterViewModel, RmvToGltfExporterViewModel>();
             services.AddTransient<IExporterViewModel, RmvToGltfStaticExporterViewModel>();
+            services.AddTransient<IExporterViewModel, RmvToFbxExporterViewModel>();
+            services.AddTransient<IExporterViewModel, AnimToFbxExporterViewModel>();
 
             // Exporters
             services.AddTransient<IDdsToMaterialPngExporter, DdsToMaterialPngExporter>();
@@ -42,14 +53,18 @@ namespace Editors.ImportExport
             services.AddTransient<IDdsToNormalPngExporter, DdsToNormalPngExporter>();
             services.AddTransient<RmvToGltfExporter>();
             services.AddTransient<RmvToGltfStaticExporter>();
+            services.AddTransient<RmvToFbxExporter>();
+            services.AddTransient<AnimToFbxExporter>();
 
             // Importer ViewModels
             RegisterWindow<ImportWindow>(services);
             services.AddTransient<ImporterCoreViewModel>();
             services.AddTransient<IImporterViewModel, RmvToGltfImporterViewModel>();
+            services.AddTransient<IImporterViewModel, FbxToRmvImporterViewModel>();
 
             // Importers
             services.AddTransient<GltfImporter>();
+            services.AddTransient<FbxImporter>();
             services.AddTransient<RmvMaterialBuilder>();
 
             // Image Save Helper

@@ -8,6 +8,17 @@ namespace Editors.ImportExport.Misc
             return fileName.EndsWith(".gltf", StringComparison.InvariantCultureIgnoreCase);
         }
 
+
+        public static bool IsFbxFile(string fileName)
+        {
+            return fileName.EndsWith(".fbx", StringComparison.InvariantCultureIgnoreCase);
+        }
+
+        public static bool IsAnimFile(string fileName)
+        {
+            return fileName.EndsWith(".anim", StringComparison.InvariantCultureIgnoreCase);
+        }
+
         public static bool IsDdsFile(string fileName)
         {
             var isDdsFile = fileName.EndsWith(".dds", StringComparison.InvariantCultureIgnoreCase);

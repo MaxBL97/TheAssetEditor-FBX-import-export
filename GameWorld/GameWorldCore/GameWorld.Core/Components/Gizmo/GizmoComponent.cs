@@ -1,4 +1,4 @@
-﻿using GameWorld.Core.Commands;
+using GameWorld.Core.Commands;
 using GameWorld.Core.Components.Input;
 using GameWorld.Core.Components.Rendering;
 using GameWorld.Core.Components.Selection;
@@ -76,13 +76,19 @@ namespace GameWorld.Core.Components.Gizmo
 
         private void GizmoTransformStart()
         {
+            if (!_mouse.IsMouseOwner(this))
+                return;
+
+            if (_activeTransformation == null)
+                return;
+
             _mouse.MouseOwner = this;
             _activeTransformation.Start(_commandManager);
         }
 
         private void GizmoTransformEnd()
         {
-            _activeTransformation.Stop(_commandManager);
+            _activeTransformation?.Stop(_commandManager);
             if (_mouse.MouseOwner == this)
             {
                 _mouse.MouseOwner = null;
@@ -141,7 +147,8 @@ namespace GameWorld.Core.Components.Gizmo
                 _gizmo.ActiveMode = GizmoMode.NonUniformScale;
 
             var isCameraMoving = _keyboard.IsKeyDown(Keys.LeftAlt);
-            _gizmo.Update(gameTime, !isCameraMoving);
+            var canUseMouse = !isCameraMoving && _mouse.IsMouseOwner(this);
+            _gizmo.Update(gameTime, canUseMouse);
         }
 
         public void SetGizmoMode(GizmoMode mode)
@@ -158,6 +165,14 @@ namespace GameWorld.Core.Components.Gizmo
         public void Disable()
         {
             _isEnabled = false;
+
+            if (_mouse.MouseOwner == this)
+            {
+                _mouse.MouseOwner = null;
+                _mouse.ClearStates();
+            }
+
+            _gizmo?.ResetDeltas();
         }
 
         public override void Draw(GameTime gameTime)

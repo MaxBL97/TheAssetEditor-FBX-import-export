@@ -1,0 +1,69 @@
+﻿<UserControl x:Class="Editors.ImportExport.Importing.Presentation.FbxToRmv.FbxToRmvImporterView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             mc:Ignorable="d"
+             VerticalAlignment="Stretch">
+    <Grid VerticalAlignment="Stretch">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="auto"/>
+            <ColumnDefinition Width="auto"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <Grid.RowDefinitions>
+            <RowDefinition Height="25"/>
+            <RowDefinition Height="25"/>
+            <RowDefinition Height="25"/>
+            <RowDefinition Height="25"/>
+            <RowDefinition Height="25"/>
+            <RowDefinition Height="25"/>
+            <RowDefinition Height="25"/>
+            <RowDefinition Height="25"/>
+            <RowDefinition Height="25"/>
+            <RowDefinition Height="auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0" Grid.Column="0" Text="Import mode" VerticalAlignment="Center"/>
+        <TextBlock Grid.Row="0" Grid.Column="1" Text=" : " VerticalAlignment="Center"/>
+        <ComboBox Grid.Row="0" Grid.Column="2" HorizontalAlignment="Left" Width="150"
+                  ItemsSource="{Binding ImportModes}"
+                  SelectedItem="{Binding SelectedImportMode, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"/>
+
+        <TextBlock Grid.Row="1" Grid.Column="0" Text="Import meshes" VerticalAlignment="Center"/>
+        <TextBlock Grid.Row="1" Grid.Column="1" Text=" : " VerticalAlignment="Center"/>
+        <CheckBox Grid.Row="1" Grid.Column="2" HorizontalAlignment="Left" IsChecked="{Binding ImportMeshes, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"/>
+
+        <TextBlock Grid.Row="2" Grid.Column="0" Text="Import skeleton / skinning" VerticalAlignment="Center"/>
+        <TextBlock Grid.Row="2" Grid.Column="1" Text=" : " VerticalAlignment="Center"/>
+        <CheckBox Grid.Row="2" Grid.Column="2" HorizontalAlignment="Left" IsChecked="{Binding ImportSkeleton, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"/>
+
+        <TextBlock Grid.Row="3" Grid.Column="0" Text="Import animations" VerticalAlignment="Center"/>
+        <TextBlock Grid.Row="3" Grid.Column="1" Text=" : " VerticalAlignment="Center"/>
+        <CheckBox Grid.Row="3" Grid.Column="2" HorizontalAlignment="Left" IsChecked="{Binding ImportAnimations, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"/>
+
+        <TextBlock Grid.Row="4" Grid.Column="0" Text="Key samples per second" VerticalAlignment="Center"/>
+        <TextBlock Grid.Row="4" Grid.Column="1" Text=" : " VerticalAlignment="Center"/>
+        <TextBox Grid.Row="4" Grid.Column="2" HorizontalAlignment="Left" Width="45" Text="{Binding AnimationKeysPerSecond, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"/>
+
+        <TextBlock Grid.Row="5" Grid.Column="0" Text="custom_skeleton" VerticalAlignment="Center"/>
+        <TextBlock Grid.Row="5" Grid.Column="1" Text=" : " VerticalAlignment="Center"/>
+        <CheckBox Grid.Row="5" Grid.Column="2" HorizontalAlignment="Left" IsChecked="{Binding CustomSkeleton, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"/>
+
+        <TextBlock Grid.Row="6" Grid.Column="0" Text="Blender-friendly mesh orientation" VerticalAlignment="Center"/>
+        <TextBlock Grid.Row="6" Grid.Column="1" Text=" : " VerticalAlignment="Center"/>
+        <CheckBox Grid.Row="6" Grid.Column="2" HorizontalAlignment="Left" IsChecked="{Binding BlenderFriendlyMeshOrientation, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"/>
+
+        <TextBlock Grid.Row="7" Grid.Column="0" Text="Blender-friendly animation orientation" VerticalAlignment="Center"/>
+        <TextBlock Grid.Row="7" Grid.Column="1" Text=" : " VerticalAlignment="Center"/>
+        <CheckBox Grid.Row="7" Grid.Column="2" HorizontalAlignment="Left" IsChecked="{Binding BlenderFriendlyAnimationOrientation, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"/>
+
+        <TextBlock Grid.Row="8" Grid.Column="0" Text="Import materials / textures" VerticalAlignment="Center"/>
+        <TextBlock Grid.Row="8" Grid.Column="1" Text=" : " VerticalAlignment="Center"/>
+        <CheckBox Grid.Row="8" Grid.Column="2" HorizontalAlignment="Left" IsChecked="{Binding ImportMaterials, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"/>
+
+        <TextBlock Grid.Row="9" Grid.Column="0" Grid.ColumnSpan="3" TextWrapping="Wrap" Margin="0,8,0,0"
+                   Text="Filename hints are optional: *_anim.fbx imports as ABC.anim, *_static.fbx imports as ABC.rigid_model_v2. Files without a hint default to RiggedMesh. StaticMesh ignores skeleton and animation. RiggedMesh imports mesh/skin only and does not run animation fixes. Animation imports the first FBX animation stack into .anim and ignores meshes."/>
+    </Grid>
+</UserControl>

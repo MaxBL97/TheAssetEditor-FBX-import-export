@@ -1,0 +1,7 @@
+<Project>
+  <PropertyGroup>
+    <!-- Temporary workaround: NuGet vulnerability audit currently raises NU1903 as error because warnings are treated as errors. -->
+    <WarningsNotAsErrors>$(WarningsNotAsErrors);NU1903</WarningsNotAsErrors>
+    <NoWarn>$(NoWarn);NU1903</NoWarn>
+  </PropertyGroup>
+</Project>

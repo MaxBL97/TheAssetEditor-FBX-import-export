@@ -60,6 +60,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ImportExportEditor", "Impor
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Editors.ImportExport", "Editors\ImportExportEditor\Editors.ImportExport\Editors.ImportExport.csproj", "{0EF858E9-A17B-40E0-BBED-97F5D1A6A8D4}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Native", "Native", "{A52C6952-25F4-4680-95B8-83AA7D570AF9}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "FbxSdkBridge", "Native\FbxSdkBridge\FbxSdkBridge.vcxproj", "{79B2D5D2-8A3C-4B99-9A48-6B6F2C7477C8}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Test.ImportExport", "Editors\ImportExportEditor\Test.ImportExport\Test.ImportExport.csproj", "{95A59789-08A8-4917-A252-B6E14BC18C6A}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Test.SkeletonEditor", "Editors\SkeletonEditor\Test.SkeletonEditor\Test.SkeletonEditor.csproj", "{C0B47D79-D2F3-445B-A90F-6AA40E23D7D8}"
@@ -590,6 +594,14 @@ Global
 		{91617891-AD16-423F-B56F-AC0D2CE82B95}.Release|x64.Build.0 = Release|Any CPU
 		{91617891-AD16-423F-B56F-AC0D2CE82B95}.Release|x86.ActiveCfg = Release|Any CPU
 		{91617891-AD16-423F-B56F-AC0D2CE82B95}.Release|x86.Build.0 = Release|Any CPU
+		{79B2D5D2-8A3C-4B99-9A48-6B6F2C7477C8}.Debug|Any CPU.ActiveCfg = Debug|x64
+		{79B2D5D2-8A3C-4B99-9A48-6B6F2C7477C8}.Debug|x64.ActiveCfg = Debug|x64
+		{79B2D5D2-8A3C-4B99-9A48-6B6F2C7477C8}.Debug|x64.Build.0 = Debug|x64
+		{79B2D5D2-8A3C-4B99-9A48-6B6F2C7477C8}.Debug|x86.ActiveCfg = Debug|x64
+		{79B2D5D2-8A3C-4B99-9A48-6B6F2C7477C8}.Release|Any CPU.ActiveCfg = Release|x64
+		{79B2D5D2-8A3C-4B99-9A48-6B6F2C7477C8}.Release|x64.ActiveCfg = Release|x64
+		{79B2D5D2-8A3C-4B99-9A48-6B6F2C7477C8}.Release|x64.Build.0 = Release|x64
+		{79B2D5D2-8A3C-4B99-9A48-6B6F2C7477C8}.Release|x86.ActiveCfg = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -647,6 +659,7 @@ Global
 		{97B5B2CE-D2E8-68AD-DABB-9986A92AD539} = {07AC615B-A8FC-4E1A-BDD5-BC11452429A0}
 		{438E6F1B-F5A9-49F3-8516-CB5E9D316C81} = {97B5B2CE-D2E8-68AD-DABB-9986A92AD539}
 		{91617891-AD16-423F-B56F-AC0D2CE82B95} = {97B5B2CE-D2E8-68AD-DABB-9986A92AD539}
+		{79B2D5D2-8A3C-4B99-9A48-6B6F2C7477C8} = {A52C6952-25F4-4680-95B8-83AA7D570AF9}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {AB5968F3-98ED-4AFF-98EA-0DBEDCACADF2}

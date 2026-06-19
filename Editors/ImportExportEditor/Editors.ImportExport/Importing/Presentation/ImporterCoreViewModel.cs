@@ -71,6 +71,9 @@ namespace Editors.ImportExport.Importing.Presentation
 
             if (SelectedImporter == null)
                 SelectedImporter = PossibleImporters.First();
+
+            if (SelectedImporter is IFileNameAwareImporterViewModel fileAwareImporter)
+                fileAwareImporter.ConfigureFromInputFile(_inputFile);
         }
 
         public void Import() => SelectedImporter!.Execute(_inputFile, _packPath, _destPackFileContainer, _applicationSettings.CurrentSettings.CurrentGame);

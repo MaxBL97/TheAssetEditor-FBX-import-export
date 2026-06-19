@@ -21,6 +21,10 @@
         <ProjectReference Include="..\Editors\AnimationReTarget\Editors.AnimatioReTarget\Editors.AnimatioReTarget.csproj" />
         <ProjectReference Include="..\Editors\Audio\Editors.Audio.csproj" />
         <ProjectReference Include="..\Editors\ImportExportEditor\Editors.ImportExport\Editors.ImportExport.csproj" />
+        <ProjectReference Include="..\Native\FbxSdkBridge\FbxSdkBridge.vcxproj">
+            <Private>true</Private>
+            <ReferenceOutputAssembly>true</ReferenceOutputAssembly>
+        </ProjectReference>
         <ProjectReference Include="..\Editors\Ipc\IpcEditor\Editors.Ipc.csproj" />
         <ProjectReference Include="..\Editors\Kitbashing\KitbasherEditor\Editors.KitbasherEditor.csproj" />
         <ProjectReference Include="..\Editors\MetaDataEditor\AnimationMeta\Editors.AnimationMeta.csproj" />
@@ -103,4 +107,23 @@
 
         <MSBuild Projects="$(UpdaterProject)" Targets="Restore;Publish" Properties="PublishDir=$(AbsolutePublishDir);Configuration=$(Configuration);RuntimeIdentifier=$(RuntimeIdentifier);SelfContained=$(SelfContained);PublishSingleFile=$(PublishSingleFile);PublishReadyToRun=$(PublishReadyToRun)" />
     </Target>
+
+    <PropertyGroup>
+        <FbxSdkRoot Condition="'$(FbxSdkRoot)'==''">C:\Program Files\Autodesk\FBX\FBX SDK\2020.3.9</FbxSdkRoot>
+        <FbxSdkBridgeOutputDir>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)\..\x64\$(Configuration)\'))</FbxSdkBridgeOutputDir>
+        <FbxSdkRuntimeDll>$(FbxSdkRoot)\lib\x64\$(Configuration)\libfbxsdk.dll</FbxSdkRuntimeDll>
+    </PropertyGroup>
+
+    <Target Name="CopyFbxSdkBridgeRuntime" AfterTargets="Build;Publish">
+        <ItemGroup>
+            <FbxSdkRuntimeFiles Include="$(FbxSdkBridgeOutputDir)FbxSdkBridge.dll" Condition="Exists('$(FbxSdkBridgeOutputDir)FbxSdkBridge.dll')" />
+            <FbxSdkRuntimeFiles Include="$(FbxSdkBridgeOutputDir)FbxSdkBridge.pdb" Condition="Exists('$(FbxSdkBridgeOutputDir)FbxSdkBridge.pdb')" />
+            <FbxSdkRuntimeFiles Include="$(FbxSdkBridgeOutputDir)libfbxsdk.dll" Condition="Exists('$(FbxSdkBridgeOutputDir)libfbxsdk.dll')" />
+            <FbxSdkRuntimeFiles Include="$(FbxSdkRuntimeDll)" Condition="Exists('$(FbxSdkRuntimeDll)')" />
+        </ItemGroup>
+
+        <Copy SourceFiles="@(FbxSdkRuntimeFiles)" DestinationFolder="$(TargetDir)" SkipUnchangedFiles="true" Condition="'@(FbxSdkRuntimeFiles)'!=''" />
+        <Copy SourceFiles="@(FbxSdkRuntimeFiles)" DestinationFolder="$(PublishDir)" SkipUnchangedFiles="true" Condition="'@(FbxSdkRuntimeFiles)'!='' and '$(PublishDir)'!=''" />
+    </Target>
+
 </Project>
