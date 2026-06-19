@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
         <OutputType>Exe</OutputType>
         <LangVersion>preview</LangVersion>
@@ -173,6 +173,24 @@
         <NoWarn>$(NoWarn),1573,1591,1712</NoWarn>
     </PropertyGroup>
 
+    <PropertyGroup>
+        <FbxSdkRoot Condition="'$(FbxSdkRoot)' == ''">C:\Program Files\Autodesk\FBX\FBX SDK\2020.3.9</FbxSdkRoot>
+    </PropertyGroup>
+
+    <ItemGroup Condition="'$(Configuration)' == 'Release'">
+        <None Include="$(FbxSdkRoot)\lib\x64\release\libfbxsdk.dll"
+              Link="libfbxsdk.dll"
+              CopyToOutputDirectory="PreserveNewest"
+              CopyToPublishDirectory="PreserveNewest" />
+    </ItemGroup>
+
+    <ItemGroup Condition="'$(Configuration)' == 'Debug'">
+        <None Include="$(FbxSdkRoot)\lib\x64\debug\libfbxsdk.dll"
+              Link="libfbxsdk.dll"
+              CopyToOutputDirectory="PreserveNewest"
+              CopyToPublishDirectory="PreserveNewest" />
+    </ItemGroup>
+    
     <Target Name="PublishUpdater" AfterTargets="ComputeFilesToPublish">
         <PropertyGroup>
             <UpdaterProject>$(MSBuildProjectDirectory)\..\AssetEditorUpdater\AssetEditorUpdater.csproj</UpdaterProject>

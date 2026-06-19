@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -40,7 +40,7 @@ namespace Editors.ImportExport.Importing.Importers.PngToDds.Helpers
 
             // metal-roughness material games            
             {(GameTypeEnum.Warhammer3, TextureType.BaseColour), DXGI_FORMAT.BC1_UNORM_SRGB},
-            {(GameTypeEnum.Warhammer3, TextureType.MaterialMap), DXGI_FORMAT.BC1_UNORM_SRGB},
+            {(GameTypeEnum.Warhammer3, TextureType.MaterialMap), DXGI_FORMAT.BC1_UNORM},
             {(GameTypeEnum.Warhammer3, TextureType.Normal), DXGI_FORMAT.BC3_UNORM},
             {(GameTypeEnum.Warhammer3, TextureType.Mask), DXGI_FORMAT.BC3_UNORM},
 
@@ -50,7 +50,7 @@ namespace Editors.ImportExport.Importing.Importers.PngToDds.Helpers
             {(GameTypeEnum.Warhammer3, TextureType.Gloss), DXGI_FORMAT.BC3_UNORM},
 
             {(GameTypeEnum.ThreeKingdoms, TextureType.BaseColour), DXGI_FORMAT.BC1_UNORM_SRGB},
-            {(GameTypeEnum.ThreeKingdoms, TextureType.MaterialMap), DXGI_FORMAT.BC1_UNORM_SRGB},
+            {(GameTypeEnum.ThreeKingdoms, TextureType.MaterialMap), DXGI_FORMAT.BC1_UNORM},
             {(GameTypeEnum.ThreeKingdoms, TextureType.Normal), DXGI_FORMAT.BC3_UNORM},
             {(GameTypeEnum.ThreeKingdoms, TextureType.Mask), DXGI_FORMAT.BC3_UNORM},            
             

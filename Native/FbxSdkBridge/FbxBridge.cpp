@@ -567,6 +567,30 @@ namespace
         return String::Equals(safeLeft, safeRight, StringComparison::OrdinalIgnoreCase);
     }
 
+    void SetStringProperty(FbxSurfaceMaterial* material, const char* name, String^ value)
+    {
+        if (!material || String::IsNullOrWhiteSpace(value))
+            return;
+
+        auto property = material->FindProperty(name);
+        if (!property.IsValid())
+            property = FbxProperty::Create(material, FbxStringDT, name);
+        property.Set(FbxString(ToStd(value).c_str()));
+    }
+
+    String^ GetStringProperty(FbxSurfaceMaterial* material, const char* name)
+    {
+        if (!material)
+            return String::Empty;
+
+        auto property = material->FindProperty(name);
+        if (!property.IsValid())
+            return String::Empty;
+
+        FbxString value = property.Get<FbxString>();
+        return ToManaged(value.Buffer());
+    }
+
     void AddTextureReference(
         List<AssetEditor::Native::FbxSdkBridge::FbxTextureReference^>^ output,
         String^ type,
@@ -632,17 +656,40 @@ namespace
         return nullptr;
     }
 
+    bool HasTextureReferenceType(
+        List<AssetEditor::Native::FbxSdkBridge::FbxTextureReference^>^ output,
+        String^ type)
+    {
+        if (output == nullptr || String::IsNullOrWhiteSpace(type))
+            return false;
+
+        for each (auto existing in output)
+        {
+            if (existing != nullptr && ManagedEquals(existing->Type, type))
+                return true;
+        }
+
+        return false;
+    }
+
     void AddPropertyFileTextures(
         FbxProperty property,
         String^ type,
-        List<AssetEditor::Native::FbxSdkBridge::FbxTextureReference^>^ output)
+        List<AssetEditor::Native::FbxSdkBridge::FbxTextureReference^>^ output,
+        bool skipWhenTypeAlreadyExists)
     {
         if (!property.IsValid())
+            return;
+
+        if (skipWhenTypeAlreadyExists && HasTextureReferenceType(output, type))
             return;
 
         int textureCount = property.GetSrcObjectCount<FbxFileTexture>();
         for (int i = 0; i < textureCount; ++i)
         {
+            if (skipWhenTypeAlreadyExists && HasTextureReferenceType(output, type))
+                return;
+
             auto texture = property.GetSrcObject<FbxFileTexture>(i);
             AddTextureReference(output, type, ReadTexturePath(texture));
         }
@@ -654,6 +701,11 @@ namespace
         if (!material)
             return output->ToArray();
 
+        // Asset Editor exports the original RMV texture paths as AE_Texture_* custom properties.
+        // Those paths must win on reimport. Blender may also write its own FBX Phong texture
+        // slots (Diffuse/Specular/etc.) with converted or color-managed file paths. If those
+        // standard slots are allowed to override the AE custom properties, the imported RMV2 can
+        // end up using a color-managed Blender texture and look washed out.
         for (auto property = material->GetFirstProperty(); property.IsValid(); property = material->GetNextProperty(property))
         {
             String^ propertyName = ToManaged(property.GetName());
@@ -665,13 +717,15 @@ namespace
             }
         }
 
-        AddPropertyFileTextures(material->FindProperty(FbxSurfaceMaterial::sDiffuse), "BaseColour", output);
-        AddPropertyFileTextures(material->FindProperty(FbxSurfaceMaterial::sNormalMap), "Normal", output);
-        AddPropertyFileTextures(material->FindProperty(FbxSurfaceMaterial::sBump), "Normal", output);
-        AddPropertyFileTextures(material->FindProperty(FbxSurfaceMaterial::sSpecular), "MaterialMap", output);
-        AddPropertyFileTextures(material->FindProperty(FbxSurfaceMaterial::sShininess), "Gloss", output);
-        AddPropertyFileTextures(material->FindProperty(FbxSurfaceMaterial::sTransparentColor), "Mask", output);
-        AddPropertyFileTextures(material->FindProperty(FbxSurfaceMaterial::sEmissive), "Emissive", output);
+        // Standard FBX slots are fallback only. They are useful for imported FBX files not
+        // exported by AE, but must not replace AE_Texture_* metadata in an AE roundtrip.
+        AddPropertyFileTextures(material->FindProperty(FbxSurfaceMaterial::sDiffuse), "BaseColour", output, true);
+        AddPropertyFileTextures(material->FindProperty(FbxSurfaceMaterial::sNormalMap), "Normal", output, true);
+        AddPropertyFileTextures(material->FindProperty(FbxSurfaceMaterial::sBump), "Normal", output, true);
+        AddPropertyFileTextures(material->FindProperty(FbxSurfaceMaterial::sSpecular), "MaterialMap", output, true);
+        AddPropertyFileTextures(material->FindProperty(FbxSurfaceMaterial::sShininess), "Gloss", output, true);
+        AddPropertyFileTextures(material->FindProperty(FbxSurfaceMaterial::sTransparentColor), "Mask", output, true);
+        AddPropertyFileTextures(material->FindProperty(FbxSurfaceMaterial::sEmissive), "Emissive", output, true);
 
         for (auto property = material->GetFirstProperty(); property.IsValid(); property = material->GetNextProperty(property))
         {
@@ -680,7 +734,7 @@ namespace
             if (String::IsNullOrWhiteSpace(inferredType))
                 continue;
 
-            AddPropertyFileTextures(property, inferredType, output);
+            AddPropertyFileTextures(property, inferredType, output, true);
         }
 
         return output->ToArray();
@@ -751,6 +805,10 @@ namespace
         importedMesh->Name = ToManaged(node->GetName());
         auto firstMaterial = node->GetMaterialCount() > 0 ? node->GetMaterial(0) : nullptr;
         importedMesh->MaterialName = firstMaterial ? ToManaged(firstMaterial->GetName()) : "material";
+        importedMesh->MaterialId = GetStringProperty(firstMaterial, "AE_MaterialId");
+        importedMesh->VertexFormat = GetStringProperty(firstMaterial, "AE_VertexFormat");
+        importedMesh->MaterialHint = GetStringProperty(firstMaterial, "AE_MaterialHint");
+        importedMesh->TextureDirectory = GetStringProperty(firstMaterial, "AE_TextureDirectory");
         importedMesh->Textures = ExtractMaterialTextures(firstMaterial);
 
         const int polygonCount = mesh->GetPolygonCount();
@@ -898,18 +956,27 @@ namespace
 
     FbxSurfacePhong* CreateMaterial(
         FbxScene* scene,
-        String^ materialName,
-        cli::array<AssetEditor::Native::FbxSdkBridge::FbxTextureReference^>^ textures)
+        AssetEditor::Native::FbxSdkBridge::FbxExportMesh^ source)
     {
-        std::string name = ToStd(String::IsNullOrWhiteSpace(materialName) ? "material" : materialName);
+        std::string name = ToStd(source == nullptr || String::IsNullOrWhiteSpace(source->MaterialName) ? "material" : source->MaterialName);
         auto material = FbxSurfacePhong::Create(scene, name.c_str());
-        material->Diffuse.Set(FbxDouble3(0.75, 0.75, 0.75));
-        material->Ambient.Set(FbxDouble3(0.1, 0.1, 0.1));
+        material->Diffuse.Set(FbxDouble3(1.0, 1.0, 1.0));
+        material->Ambient.Set(FbxDouble3(0.0, 0.0, 0.0));
+        material->Specular.Set(FbxDouble3(0.0, 0.0, 0.0));
+        material->Shininess.Set(0.0);
 
-        if (textures != nullptr)
+        if (source != nullptr)
         {
-            for each (auto textureReference in textures)
-                AddExportTexture(scene, material, textureReference);
+            SetStringProperty(material, "AE_MaterialId", source->MaterialId);
+            SetStringProperty(material, "AE_VertexFormat", source->VertexFormat);
+            SetStringProperty(material, "AE_MaterialHint", source->MaterialHint);
+            SetStringProperty(material, "AE_TextureDirectory", source->TextureDirectory);
+
+            if (source->Textures != nullptr)
+            {
+                for each (auto textureReference in source->Textures)
+                    AddExportTexture(scene, material, textureReference);
+            }
         }
 
         return material;
@@ -953,7 +1020,7 @@ namespace
 
         auto node = FbxNode::Create(scene, ToStd(source->Name).c_str());
         node->SetNodeAttribute(mesh);
-        node->AddMaterial(CreateMaterial(scene, source->MaterialName, source->Textures));
+        node->AddMaterial(CreateMaterial(scene, source));
         scene->GetRootNode()->AddChild(node);
 
         if (!boneNodes.empty())

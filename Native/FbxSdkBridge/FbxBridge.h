@@ -39,6 +39,10 @@ namespace AssetEditor::Native::FbxSdkBridge
     public:
         property System::String^ Name;
         property System::String^ MaterialName;
+        property System::String^ MaterialId;
+        property System::String^ VertexFormat;
+        property System::String^ MaterialHint;
+        property System::String^ TextureDirectory;
         property cli::array<FbxTextureReference^>^ Textures;
         property cli::array<FbxImportedVertex^>^ Vertices;
         property cli::array<int>^ Indices;
@@ -67,6 +71,10 @@ namespace AssetEditor::Native::FbxSdkBridge
     public:
         property System::String^ Name;
         property System::String^ MaterialName;
+        property System::String^ MaterialId;
+        property System::String^ VertexFormat;
+        property System::String^ MaterialHint;
+        property System::String^ TextureDirectory;
         property cli::array<FbxTextureReference^>^ Textures;
         property cli::array<FbxExportVertex^>^ Vertices;
         property cli::array<int>^ Indices;

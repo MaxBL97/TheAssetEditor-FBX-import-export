@@ -269,6 +269,10 @@ public sealed class AutodeskFbxService
                 {
                     Name = BuildExportMeshName(model, lodIndex, modelIndex),
                     MaterialName = BuildExportMaterialName(model, lodIndex, modelIndex),
+                    MaterialId = model.Material?.MaterialId.ToString() ?? string.Empty,
+                    VertexFormat = model.Material is WeightedMaterial weightedMaterial ? weightedMaterial.BinaryVertexFormat.ToString() : string.Empty,
+                    MaterialHint = model.Material is WeightedMaterial weightedMaterialForHint ? weightedMaterialForHint.MaterialHint.ToString() : string.Empty,
+                    TextureDirectory = model.Material is WeightedMaterial weightedMaterialForDir ? weightedMaterialForDir.TextureDirectory : string.Empty,
                     Textures = exportMaterials ? CreateExportTextures(model.Material) : [],
                     Vertices = vertices,
                     Indices = CreateIndices(model.Mesh.IndexList, mirror),
@@ -324,12 +328,16 @@ public sealed class AutodeskFbxService
         AnimationFile? skeletonFile,
         bool importMaterials)
     {
+        var vertexFormat = ResolveImportedVertexFormat(importedMesh, skeletonFile);
         var material = new WeightedMaterial
         {
-            BinaryVertexFormat = skeletonFile != null ? VertexFormat.Cinematic : VertexFormat.Static,
-            MaterialId = skeletonFile != null ? ModelMaterialEnum.weighted : ModelMaterialEnum.default_type,
+            BinaryVertexFormat = vertexFormat,
+            MaterialId = ParseEnum(importedMesh.MaterialId, skeletonFile != null ? ModelMaterialEnum.weighted : ModelMaterialEnum.default_type),
+            MaterialHint = ParseEnum(importedMesh.MaterialHint, WeightedMaterial.MaterialHintEnum.Unknown),
             ModelName = importedMesh.Name,
-            TextureDirectory = BuildTextureDirectoryFromMeshName(importedMesh.Name),
+            TextureDirectory = string.IsNullOrWhiteSpace(importedMesh.TextureDirectory)
+                ? BuildTextureDirectoryFromMeshName(importedMesh.Name)
+                : NormalizeTexturePath(importedMesh.TextureDirectory),
             MatrixIndex = 0,
             ParentMatrixIndex = -1,
         };
@@ -350,6 +358,35 @@ public sealed class AutodeskFbxService
         }
 
         return material;
+    }
+
+    private static TEnum ParseEnum<TEnum>(string? value, TEnum fallback)
+        where TEnum : struct, Enum
+    {
+        return Enum.TryParse<TEnum>(value, true, out var parsed) ? parsed : fallback;
+    }
+
+    private static VertexFormat ResolveImportedVertexFormat(FbxImportedMesh importedMesh, AnimationFile? skeletonFile)
+    {
+        if (skeletonFile == null)
+            return VertexFormat.Static;
+
+        var vertexFormat = ParseEnum(importedMesh.VertexFormat, VertexFormat.Cinematic);
+        return vertexFormat switch
+        {
+            VertexFormat.Weighted => VertexFormat.Weighted,
+            VertexFormat.Cinematic => VertexFormat.Cinematic,
+            VertexFormat.Static => VertexFormat.Static,
+            _ => VertexFormat.Cinematic,
+        };
+    }
+
+    private static int GetWeightSlotCount(VertexFormat vertexFormat, AnimationFile? skeletonFile)
+    {
+        if (skeletonFile == null || vertexFormat == VertexFormat.Static)
+            return 0;
+
+        return vertexFormat == VertexFormat.Weighted ? 2 : 4;
     }
 
     private static string BuildTextureDirectoryFromMeshName(string? meshName)
@@ -618,6 +655,7 @@ public sealed class AutodeskFbxService
         bool mirrorMesh,
         bool importMaterials)
     {
+        var vertexFormat = ResolveImportedVertexFormat(importedMesh, skeletonFile);
         var rmvMesh = new RmvMesh
         {
             VertexList = new CommonVertex[importedMesh.Vertices.Length],
@@ -625,7 +663,7 @@ public sealed class AutodeskFbxService
         };
 
         for (var i = 0; i < importedMesh.Vertices.Length; i++)
-            rmvMesh.VertexList[i] = ConvertImportedVertex(importedMesh.Vertices[i], fbxBones, skeletonFile, mirrorMesh, importMaterials);
+            rmvMesh.VertexList[i] = ConvertImportedVertex(importedMesh.Vertices[i], fbxBones, skeletonFile, mirrorMesh, vertexFormat);
 
         TangentBasisCalculator.CalculateForRmv2Mesh(rmvMesh);
 
@@ -647,7 +685,7 @@ public sealed class AutodeskFbxService
         IReadOnlyList<FbxSkeletonBoneInfo> fbxBones,
         AnimationFile? skeletonFile,
         bool mirrorMesh,
-        bool importMaterials)
+        VertexFormat vertexFormat)
     {
         var position = importedVertex.Position;
         var normal = importedVertex.Normal;
@@ -660,7 +698,8 @@ public sealed class AutodeskFbxService
             Uv = new XNA.Vector2(Read(uv, 0), 1.0f - Read(uv, 1)),
         };
 
-        if (skeletonFile == null || importedVertex.BoneIndices.Length == 0)
+        var slotCount = GetWeightSlotCount(vertexFormat, skeletonFile);
+        if (slotCount == 0)
         {
             vertex.WeightCount = 0;
             vertex.BoneIndex = [];
@@ -668,28 +707,28 @@ public sealed class AutodeskFbxService
             return vertex;
         }
 
-        var weights = CreateImportedWeights(importedVertex, fbxBones, skeletonFile);
-        ApplyCinematicWeights(vertex, weights);
+        var weights = CreateImportedWeights(importedVertex, fbxBones, skeletonFile!);
+        ApplyImportedWeights(vertex, weights, slotCount);
         return vertex;
     }
 
 
-    private static void ApplyCinematicWeights(CommonVertex vertex, IReadOnlyList<(int BoneIndex, float Weight)> weights)
+    private static void ApplyImportedWeights(CommonVertex vertex, IReadOnlyList<(int BoneIndex, float Weight)> weights, int slotCount)
     {
-        var indices = new byte[4];
-        var values = new float[4];
+        var indices = new byte[slotCount];
+        var values = new float[slotCount];
 
         if (weights.Count == 0)
         {
             indices[0] = 0;
             values[0] = 1.0f;
-            vertex.WeightCount = 4;
+            vertex.WeightCount = slotCount;
             vertex.BoneIndex = indices;
             vertex.BoneWeight = values;
             return;
         }
 
-        var count = Math.Min(4, weights.Count);
+        var count = Math.Min(slotCount, weights.Count);
         var total = 0.0f;
         for (var i = 0; i < count; i++)
         {
@@ -706,11 +745,11 @@ public sealed class AutodeskFbxService
         }
         else
         {
-            for (var i = 0; i < values.Length; i++)
+            for (var i = 0; i < count; i++)
                 values[i] /= total;
         }
 
-        vertex.WeightCount = 4;
+        vertex.WeightCount = slotCount;
         vertex.BoneIndex = indices;
         vertex.BoneWeight = values;
     }
