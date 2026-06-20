@@ -1,4 +1,4 @@
-﻿using DirectXTexNet;
+using DirectXTexNet;
 using Editors.ImportExport.Importing.Importers.PngToDds.Helpers;
 using Shared.Core.PackFiles.Models;
 using Shared.Core.Settings;
@@ -11,14 +11,16 @@ namespace Editors.ImportExport.Importing.Importers.PngToDds
 
     public class PngToDdsImporter
     {
-        static public PackFile Import(string inputPath, TextureType textureType, GameTypeEnum gameType, string outFileName)
+        static public PackFile Import(string inputPath, TextureType textureType, GameTypeEnum gameType, string outFileName, bool processImage = true)
         {
-            ScratchImage scratchImagePng = TexHelper.Instance.LoadFromWICFile(inputPath, WIC_FLAGS.DEFAULT_SRGB);
+            var wicFlags = IsColourTexture(textureType) ? WIC_FLAGS.DEFAULT_SRGB : WIC_FLAGS.NONE;
+            ScratchImage scratchImagePng = TexHelper.Instance.LoadFromWICFile(inputPath, wicFlags);
 
             bool isUncompressed = scratchImagePng.GetMetadata().Format == DXGI_FORMAT.B8G8R8A8_UNORM || scratchImagePng.GetMetadata().Format == DXGI_FORMAT.B8G8R8A8_UNORM_SRGB;
 
-            var processedImage = ImageProcessorFactory.CreateImageProcessor(textureType).Transform(scratchImagePng);
-            // process image based on texture type
+            var processedImage = processImage
+                ? ImageProcessorFactory.CreateImageProcessor(textureType).Transform(scratchImagePng)
+                : scratchImagePng.CreateImageCopy(0, false, CP_FLAGS.NONE);
 
             var imageWithMips = processedImage.GenerateMipMaps(TEX_FILTER_FLAGS.DEFAULT, 0);
             var ddsFormat = DDSFormatHelper.GetDDSFormat(gameType, textureType);
@@ -32,6 +34,11 @@ namespace Editors.ImportExport.Importing.Importers.PngToDds
             var ddsPackFile = new PackFile(outFileName, new MemorySource(ddsBytes));
 
             return ddsPackFile;
+        }
+
+        private static bool IsColourTexture(TextureType textureType)
+        {
+            return textureType is TextureType.BaseColour or TextureType.Diffuse or TextureType.Specular;
         }
     }
 }

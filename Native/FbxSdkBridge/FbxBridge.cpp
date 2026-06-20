@@ -591,25 +591,58 @@ namespace
         return ToManaged(value.Buffer());
     }
 
+    AssetEditor::Native::FbxSdkBridge::FbxTextureReference^ FindTextureReferenceByType(
+        List<AssetEditor::Native::FbxSdkBridge::FbxTextureReference^>^ output,
+        String^ type)
+    {
+        if (output == nullptr || String::IsNullOrWhiteSpace(type))
+            return nullptr;
+
+        for each (auto existing in output)
+        {
+            if (existing != nullptr && ManagedEquals(existing->Type, type))
+                return existing;
+        }
+
+        return nullptr;
+    }
+
     void AddTextureReference(
         List<AssetEditor::Native::FbxSdkBridge::FbxTextureReference^>^ output,
         String^ type,
-        String^ path)
+        String^ path,
+        String^ externalPath)
     {
         if (String::IsNullOrWhiteSpace(type) || String::IsNullOrWhiteSpace(path))
             return;
 
         path = path->Replace('/', '\\');
+        if (!String::IsNullOrWhiteSpace(externalPath))
+            externalPath = externalPath->Replace('/', '\\');
+
         for each (auto existing in output)
         {
             if (existing != nullptr && ManagedEquals(existing->Type, type) && ManagedEquals(existing->Path, path))
+            {
+                if (String::IsNullOrWhiteSpace(existing->ExternalPath) && !String::IsNullOrWhiteSpace(externalPath))
+                    existing->ExternalPath = externalPath;
                 return;
+            }
         }
 
         auto item = gcnew AssetEditor::Native::FbxSdkBridge::FbxTextureReference();
         item->Type = type;
         item->Path = path;
+        item->ExternalPath = externalPath;
         output->Add(item);
+    }
+
+    void AddTextureReference(
+        List<AssetEditor::Native::FbxSdkBridge::FbxTextureReference^>^ output,
+        String^ type,
+        String^ path)
+    {
+        AddTextureReference(output, type, path, String::Empty);
     }
 
     String^ ReadTexturePath(FbxFileTexture* texture)
@@ -681,17 +714,26 @@ namespace
         if (!property.IsValid())
             return;
 
-        if (skipWhenTypeAlreadyExists && HasTextureReferenceType(output, type))
-            return;
-
         int textureCount = property.GetSrcObjectCount<FbxFileTexture>();
         for (int i = 0; i < textureCount; ++i)
         {
-            if (skipWhenTypeAlreadyExists && HasTextureReferenceType(output, type))
-                return;
-
             auto texture = property.GetSrcObject<FbxFileTexture>(i);
-            AddTextureReference(output, type, ReadTexturePath(texture));
+            auto linkedPath = ReadTexturePath(texture);
+            if (String::IsNullOrWhiteSpace(linkedPath))
+                continue;
+
+            if (skipWhenTypeAlreadyExists)
+            {
+                auto existing = FindTextureReferenceByType(output, type);
+                if (existing != nullptr)
+                {
+                    if (String::IsNullOrWhiteSpace(existing->ExternalPath))
+                        existing->ExternalPath = linkedPath->Replace('/', '\\');
+                    return;
+                }
+            }
+
+            AddTextureReference(output, type, linkedPath, linkedPath);
         }
     }
 
@@ -713,7 +755,9 @@ namespace
             {
                 auto type = propertyName->Substring(11);
                 FbxString path = property.Get<FbxString>();
-                AddTextureReference(output, type, ToManaged(path.Buffer()));
+                auto externalPropertyName = std::string("AE_TextureExternal_") + ToStd(type);
+                auto externalPath = GetStringProperty(material, externalPropertyName.c_str());
+                AddTextureReference(output, type, ToManaged(path.Buffer()), externalPath);
             }
         }
 
@@ -767,31 +811,55 @@ namespace
             return;
 
         std::string type = ToStd(String::IsNullOrWhiteSpace(textureReference->Type) ? "Texture" : textureReference->Type);
-        std::string path = ToStd(textureReference->Path->Replace('/', '\\'));
+        std::string originalPath = ToStd(textureReference->Path->Replace('/', '\\'));
+        System::String^ linkedPathManaged = String::IsNullOrWhiteSpace(textureReference->ExternalPath)
+            ? textureReference->Path
+            : textureReference->ExternalPath;
+        std::string linkedPath = ToStd(linkedPathManaged->Replace('/', '\\'));
         std::string materialName = material->GetName();
 
         auto customPropertyName = std::string("AE_Texture_") + type;
         auto customProperty = material->FindProperty(customPropertyName.c_str());
         if (!customProperty.IsValid())
             customProperty = FbxProperty::Create(material, FbxStringDT, customPropertyName.c_str());
-        customProperty.Set(FbxString(path.c_str()));
+        // Keep the original RMV/pack DDS path as metadata. The FBX texture connection below
+        // can point to a Blender-friendly PNG without changing the RMV material path.
+        customProperty.Set(FbxString(originalPath.c_str()));
 
-        auto textureName = materialName + "_" + type;
-        auto texture = FbxFileTexture::Create(scene, textureName.c_str());
-        texture->SetFileName(path.c_str());
-        texture->SetRelativeFileName(path.c_str());
-        texture->SetTextureUse(FbxTexture::eStandard);
-        texture->SetMappingType(FbxTexture::eUV);
-        texture->SetMaterialUse(FbxFileTexture::eModelMaterial);
-        texture->UVSet.Set("UVSet0");
+        auto customExternalPropertyName = std::string("AE_TextureExternal_") + type;
+        auto customExternalProperty = material->FindProperty(customExternalPropertyName.c_str());
+        if (!customExternalProperty.IsValid())
+            customExternalProperty = FbxProperty::Create(material, FbxStringDT, customExternalPropertyName.c_str());
+        customExternalProperty.Set(FbxString(linkedPath.c_str()));
+
+        // WH3 material_map is not an FBX Phong specular colour texture. Connecting it
+        // to Specular makes Blender preview metallic/washed while the texture data is
+        // actually fine. Keep it as AE metadata + external path for reimport, but do not
+        // wire it into the visible FBX shader. Fresh Blender files can still provide a
+        // material_map through a standard slot or by name on import.
+        if (ManagedEquals(textureReference->Type, "MaterialMap"))
+            return;
 
         auto propertyName = ResolveExportPropertyName(textureReference->Type);
         if (!propertyName)
             return;
 
+        auto textureName = materialName + "_" + type;
+        auto texture = FbxFileTexture::Create(scene, textureName.c_str());
+        texture->SetFileName(linkedPath.c_str());
+        texture->SetRelativeFileName(linkedPath.c_str());
+        texture->SetTextureUse(ManagedEquals(textureReference->Type, "Normal") ? FbxTexture::eBumpNormalMap : FbxTexture::eStandard);
+        texture->SetMappingType(FbxTexture::eUV);
+        texture->SetMaterialUse(FbxFileTexture::eModelMaterial);
+        texture->UVSet.Set("UVSet0");
+
         auto property = material->FindProperty(propertyName);
         if (property.IsValid())
             property.ConnectSrcObject(texture);
+
+        // Do not also wire the normal map into the generic Bump slot. Blender can
+        // import both connections and make the same normal map look too strong/sharp.
+        // The dedicated NormalMap slot is enough and is what we want for roundtrip.
     }
 
     AssetEditor::Native::FbxSdkBridge::FbxImportedMesh^ ImportMesh(

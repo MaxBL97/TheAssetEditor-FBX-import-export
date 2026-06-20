@@ -31,7 +31,14 @@ namespace AssetEditor::Native::FbxSdkBridge
     {
     public:
         property System::String^ Type;
+
+        // Original RMV/pack texture path. For AE roundtrips this should stay as the .dds path
+        // stored in the rigid_model_v2 material, even when the FBX is linked to a Blender PNG.
         property System::String^ Path;
+
+        // External texture file linked by the FBX material, normally a PNG next to the FBX.
+        // Import uses this as the source image to convert/copy back to the original Path.
+        property System::String^ ExternalPath;
     };
 
     public ref class FbxImportedMesh sealed

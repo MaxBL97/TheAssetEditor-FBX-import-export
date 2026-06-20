@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.IO;
 using AssetEditor.Native.FbxSdkBridge;
 using Editors.ImportExport.Importing.Importers.GltfToRmv.Helper;
@@ -60,7 +60,8 @@ public sealed class AutodeskFbxService
         bool ascii = false,
         bool meshBlenderFriendlyOrientation = true,
         bool skeletonBlenderFriendlyOrientation = true,
-        bool animationBlenderFriendlyOrientation = false)
+        bool animationBlenderFriendlyOrientation = false,
+        IReadOnlyDictionary<string, string>? externalTextureLinksByPackPath = null)
     {
         ArgumentNullException.ThrowIfNull(rmvFile);
         ArgumentException.ThrowIfNullOrWhiteSpace(outputPath);
@@ -72,7 +73,8 @@ public sealed class AutodeskFbxService
             exportMaterials,
             meshBlenderFriendlyOrientation,
             skeletonBlenderFriendlyOrientation,
-            animationBlenderFriendlyOrientation);
+            animationBlenderFriendlyOrientation,
+            externalTextureLinksByPackPath);
         ExportScene(scene, outputPath, ascii);
     }
 
@@ -192,7 +194,8 @@ public sealed class AutodeskFbxService
         bool exportMaterials = true,
         bool meshBlenderFriendlyOrientation = true,
         bool skeletonBlenderFriendlyOrientation = true,
-        bool animationBlenderFriendlyOrientation = false)
+        bool animationBlenderFriendlyOrientation = false,
+        IReadOnlyDictionary<string, string>? externalTextureLinksByPackPath = null)
     {
         ArgumentNullException.ThrowIfNull(rmvFile);
 
@@ -201,7 +204,7 @@ public sealed class AutodeskFbxService
             Name = Path.GetFileNameWithoutExtension(rmvFile.Header.SkeletonName) ?? "AssetEditorScene",
             SkeletonName = rmvFile.Header.SkeletonName ?? skeletonFile?.Header.SkeletonName ?? string.Empty,
             Bones = skeletonFile != null ? CreateBonesFromSkeleton(skeletonFile, skeletonBlenderFriendlyOrientation) : [],
-            Meshes = CreateMeshesFromRmv(rmvFile, meshBlenderFriendlyOrientation, exportMaterials),
+            Meshes = CreateMeshesFromRmv(rmvFile, meshBlenderFriendlyOrientation, exportMaterials, externalTextureLinksByPackPath),
             Animations = skeletonFile != null ? CreateAnimationClips(skeletonFile, animationFiles, animationBlenderFriendlyOrientation) : [],
         };
 
@@ -242,7 +245,11 @@ public sealed class AutodeskFbxService
         return bones;
     }
 
-    private static FbxExportMesh[] CreateMeshesFromRmv(RmvFile rmvFile, bool mirror, bool exportMaterials)
+    private static FbxExportMesh[] CreateMeshesFromRmv(
+        RmvFile rmvFile,
+        bool mirror,
+        bool exportMaterials,
+        IReadOnlyDictionary<string, string>? externalTextureLinksByPackPath = null)
     {
         var meshes = new List<FbxExportMesh>();
         for (var lodIndex = 0; lodIndex < rmvFile.ModelList.Length; lodIndex++)
@@ -273,7 +280,7 @@ public sealed class AutodeskFbxService
                     VertexFormat = model.Material is WeightedMaterial weightedMaterial ? weightedMaterial.BinaryVertexFormat.ToString() : string.Empty,
                     MaterialHint = model.Material is WeightedMaterial weightedMaterialForHint ? weightedMaterialForHint.MaterialHint.ToString() : string.Empty,
                     TextureDirectory = model.Material is WeightedMaterial weightedMaterialForDir ? weightedMaterialForDir.TextureDirectory : string.Empty,
-                    Textures = exportMaterials ? CreateExportTextures(model.Material) : [],
+                    Textures = exportMaterials ? CreateExportTextures(model.Material, externalTextureLinksByPackPath) : [],
                     Vertices = vertices,
                     Indices = CreateIndices(model.Mesh.IndexList, mirror),
                 });
@@ -307,7 +314,9 @@ public sealed class AutodeskFbxService
         return new string(chars);
     }
 
-    private static FbxTextureReference[] CreateExportTextures(IRmvMaterial? material)
+    private static FbxTextureReference[] CreateExportTextures(
+        IRmvMaterial? material,
+        IReadOnlyDictionary<string, string>? externalTextureLinksByPackPath)
     {
         if (material == null)
             return [];
@@ -315,10 +324,24 @@ public sealed class AutodeskFbxService
         return material
             .GetAllTextures()
             .Where(texture => !string.IsNullOrWhiteSpace(texture.Path))
-            .Select(texture => new FbxTextureReference
+            .Select(texture =>
             {
-                Type = texture.TexureType.ToString(),
-                Path = NormalizeTexturePath(texture.Path),
+                var originalPath = NormalizeTexturePath(texture.Path);
+                var externalPath = originalPath;
+
+                if (externalTextureLinksByPackPath != null &&
+                    externalTextureLinksByPackPath.TryGetValue(originalPath, out var linkedExternalPath) &&
+                    !string.IsNullOrWhiteSpace(linkedExternalPath))
+                {
+                    externalPath = linkedExternalPath;
+                }
+
+                return new FbxTextureReference
+                {
+                    Type = texture.TexureType.ToString(),
+                    Path = originalPath,
+                    ExternalPath = externalPath.Replace('/', '\\'),
+                };
             })
             .ToArray();
     }
@@ -402,6 +425,13 @@ public sealed class AutodeskFbxService
 
     private static TextureType? ResolveRmvTextureType(string? rawType, string? path)
     {
+        // Prefer a strong file-name match over the FBX/Phong slot name. Blender can put
+        // Total War data textures into generic Specular/Diffuse slots, and some material
+        // headers are ambiguous. The filename is safer for WH3 texture roles.
+        var typeFromPath = ResolveTextureTypeFromPath(path);
+        if (typeFromPath != null)
+            return typeFromPath;
+
         if (!string.IsNullOrWhiteSpace(rawType))
         {
             var normalizedType = rawType.Replace(" ", string.Empty).Replace("-", string.Empty).Replace("_", string.Empty);
@@ -413,30 +443,48 @@ public sealed class AutodeskFbxService
             }
         }
 
+        return TextureType.BaseColour;
+    }
+
+    private static TextureType? ResolveTextureTypeFromPath(string? path)
+    {
         if (string.IsNullOrWhiteSpace(path))
             return null;
 
-        var fileName = Path.GetFileNameWithoutExtension(path).ToLowerInvariant();
-        if (fileName.EndsWith("_n") || fileName.Contains("normal"))
-            return TextureType.Normal;
-        if (fileName.Contains("material") || fileName.Contains("metal") || fileName.Contains("rough"))
-            return TextureType.MaterialMap;
-        if (fileName.Contains("mask"))
-            return TextureType.Mask;
-        if (fileName.Contains("ao") || fileName.Contains("ambient"))
-            return TextureType.Ambient_occlusion;
-        if (fileName.Contains("spec"))
-            return TextureType.Specular;
-        if (fileName.Contains("gloss"))
-            return TextureType.Gloss;
-        if (fileName.Contains("emissive") || fileName.Contains("emit"))
-            return TextureType.Emissive;
-        if (fileName.Contains("blood"))
-            return TextureType.Blood;
-        if (fileName.Contains("diffuse") || fileName.Contains("base") || fileName.Contains("colour") || fileName.Contains("color") || fileName.Contains("albedo"))
+        var fileName = Path.GetFileNameWithoutExtension(path.Replace('\\', Path.DirectorySeparatorChar).Replace('/', Path.DirectorySeparatorChar));
+        if (string.IsNullOrWhiteSpace(fileName))
+            return null;
+
+        var lower = fileName.ToLowerInvariant();
+
+        if (lower.EndsWith("_base_colour") || lower.EndsWith("_base_color") || lower.Contains("base_colour") || lower.Contains("base_color") || lower.Contains("diffuse") || lower.Contains("albedo"))
             return TextureType.BaseColour;
 
-        return TextureType.BaseColour;
+        if (lower.EndsWith("_material_map") || lower.Contains("material_map") || lower.Contains("metallic_roughness") || lower.Contains("metal_rough"))
+            return TextureType.MaterialMap;
+
+        if (lower.EndsWith("_normal") || lower.EndsWith("_n") || lower.Contains("normal"))
+            return TextureType.Normal;
+
+        if (lower.EndsWith("_mask") || lower.Contains("mask"))
+            return TextureType.Mask;
+
+        if (lower.Contains("ao") || lower.Contains("ambient"))
+            return TextureType.Ambient_occlusion;
+
+        if (lower.Contains("spec"))
+            return TextureType.Specular;
+
+        if (lower.Contains("gloss"))
+            return TextureType.Gloss;
+
+        if (lower.Contains("emissive") || lower.Contains("emit"))
+            return TextureType.Emissive;
+
+        if (lower.Contains("blood"))
+            return TextureType.Blood;
+
+        return null;
     }
 
     private static FbxExportAnimationClip[] CreateAnimationClips(AnimationFile skeletonFile, IReadOnlyList<AnimationFile> animationFiles, bool mirror)

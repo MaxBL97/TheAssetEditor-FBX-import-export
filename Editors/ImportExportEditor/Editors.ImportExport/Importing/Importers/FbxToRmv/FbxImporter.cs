@@ -1,4 +1,4 @@
-﻿using System.IO;
+using System.IO;
 using Shared.ByteParsing;
 using CommonControls.BaseDialogs.ErrorListDialog;
 using Editors.ImportExport.Common.FbxSdk;
@@ -178,18 +178,39 @@ public sealed class FbxImporter
             settings.ImportMaterials);
 
         if (settings.ImportMaterials)
-            ImportExternalTextureFilesToPack(settings, rmvFile);
+            ImportExternalTextureFilesToPack(settings, rmvFile, BuildExternalTexturePathLookup(importedScene));
 
         SaveRmvFileToPack(settings, rmvFile);
     }
 
 
 
-    private void ImportExternalTextureFilesToPack(FbxImporterSettings settings, RmvFile rmvFile)
+    private static Dictionary<string, string> BuildExternalTexturePathLookup(AssetEditor.Native.FbxSdkBridge.FbxImportedScene importedScene)
+    {
+        var output = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var mesh in importedScene.Meshes ?? [])
+        {
+            foreach (var texture in mesh.Textures ?? [])
+            {
+                if (texture == null || string.IsNullOrWhiteSpace(texture.Path) || string.IsNullOrWhiteSpace(texture.ExternalPath))
+                    continue;
+
+                output[NormalizePackPath(texture.Path)] = texture.ExternalPath;
+            }
+        }
+
+        return output;
+    }
+
+    private void ImportExternalTextureFilesToPack(
+        FbxImporterSettings settings,
+        RmvFile rmvFile,
+        IReadOnlyDictionary<string, string> externalTexturePathByOriginalPackPath)
     {
         var fbxDirectory = Path.GetDirectoryName(Path.GetFullPath(settings.InputFbxFile)) ?? string.Empty;
-        var texturePackFolder = CombinePackPath(settings.DestinationPackPath, "tex");
-        var importedBySourcePath = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var fbxTextureDirectory = Path.Combine(fbxDirectory, Path.GetFileNameWithoutExtension(settings.InputFbxFile) + "_textures");
+        var importedByTargetPath = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var lod in rmvFile.ModelList)
         {
@@ -200,87 +221,202 @@ public sealed class FbxImporter
                     if (string.IsNullOrWhiteSpace(texture.Path))
                         continue;
 
-                    var externalPath = ResolveExternalTexturePath(texture.Path, fbxDirectory);
+                    externalTexturePathByOriginalPackPath.TryGetValue(NormalizePackPath(texture.Path), out var preferredExternalTexturePath);
+                    var externalPath = ResolveExternalTexturePath(preferredExternalTexturePath, texture.Path, fbxDirectory, fbxTextureDirectory);
                     if (externalPath == null)
                         continue;
 
-                    if (!importedBySourcePath.TryGetValue(externalPath, out var packTexturePath))
-                    {
-                        var textureFileName = BuildImportedTextureFileName(settings, model.Material, texture.TexureType, externalPath);
-                        var texturePackFile = CreatePackTextureFromExternalFile(externalPath, texture.TexureType, settings, textureFileName);
-                        _packFileService.AddFilesToPack(settings.DestinationPackFileContainer, [new NewPackFileEntry(texturePackFolder, texturePackFile)]);
+                    var texturePackFolder = ResolveTexturePackFolder(settings);
+                    if (model.Material is WeightedMaterial weightedMaterial)
+                        weightedMaterial.TextureDirectory = texturePackFolder;
 
-                        packTexturePath = CombinePackPath(texturePackFolder, textureFileName);
-                        importedBySourcePath[externalPath] = packTexturePath;
+                    var textureFileName = BuildImportedTextureFileName(texture.Path, externalPath);
+                    var packTexturePath = CombinePackPath(texturePackFolder, textureFileName);
+
+                    var effectiveTextureType = ResolveTextureTypeFromPath(texture.Path) ?? texture.TexureType;
+
+                    if (!importedByTargetPath.ContainsKey(packTexturePath))
+                    {
+                        var isAeRoundtripTexture = IsAeRoundtripTexture(texture.Path, preferredExternalTexturePath);
+                        var processImage = ShouldProcessExternalTextureForImport(effectiveTextureType, isAeRoundtripTexture);
+                        var texturePackFile = CreatePackTextureFromExternalFile(externalPath, effectiveTextureType, settings, textureFileName, processImage);
+                        _packFileService.AddFilesToPack(settings.DestinationPackFileContainer, [new NewPackFileEntry(texturePackFolder, texturePackFile)]);
+                        importedByTargetPath[packTexturePath] = packTexturePath;
                     }
 
-                    model.Material.SetTexture(texture.TexureType, packTexturePath);
+                    model.Material.SetTexture(effectiveTextureType, packTexturePath);
                 }
             }
         }
     }
 
-    private static string? ResolveExternalTexturePath(string texturePath, string fbxDirectory)
+
+    private static TextureType? ResolveTextureTypeFromPath(string? texturePath)
     {
-        var normalizedPath = texturePath.Replace('/', Path.DirectorySeparatorChar).Replace('\\', Path.DirectorySeparatorChar).Trim();
-        if (string.IsNullOrWhiteSpace(normalizedPath))
+        if (string.IsNullOrWhiteSpace(texturePath))
             return null;
 
-        if (Path.IsPathRooted(normalizedPath) && File.Exists(normalizedPath))
-            return Path.GetFullPath(normalizedPath);
+        var fileName = Path.GetFileNameWithoutExtension(texturePath.Replace('\\', Path.DirectorySeparatorChar).Replace('/', Path.DirectorySeparatorChar));
+        if (string.IsNullOrWhiteSpace(fileName))
+            return null;
 
-        var relativeToFbx = Path.Combine(fbxDirectory, normalizedPath);
-        if (File.Exists(relativeToFbx))
-            return Path.GetFullPath(relativeToFbx);
+        var lower = fileName.ToLowerInvariant();
 
-        var relativeFileName = Path.Combine(fbxDirectory, Path.GetFileName(normalizedPath));
-        if (File.Exists(relativeFileName))
-            return Path.GetFullPath(relativeFileName);
+        if (lower.EndsWith("_base_colour") || lower.EndsWith("_base_color") || lower.Contains("base_colour") || lower.Contains("base_color") || lower.Contains("diffuse") || lower.Contains("albedo"))
+            return TextureType.BaseColour;
+
+        if (lower.EndsWith("_material_map") || lower.Contains("material_map") || lower.Contains("metallic_roughness") || lower.Contains("metal_rough"))
+            return TextureType.MaterialMap;
+
+        if (lower.EndsWith("_normal") || lower.EndsWith("_n") || lower.Contains("normal"))
+            return TextureType.Normal;
+
+        if (lower.EndsWith("_mask") || lower.Contains("mask"))
+            return TextureType.Mask;
+
+        if (lower.Contains("emissive") || lower.Contains("emit"))
+            return TextureType.Emissive;
+
+        if (lower.Contains("spec"))
+            return TextureType.Specular;
+
+        if (lower.Contains("gloss"))
+            return TextureType.Gloss;
 
         return null;
+    }
+
+    private static string? ResolveExternalTexturePath(
+        string? preferredExternalTexturePath,
+        string originalTexturePath,
+        string fbxDirectory,
+        string fbxTextureDirectory)
+    {
+        foreach (var candidate in EnumerateExternalTextureCandidates(preferredExternalTexturePath, originalTexturePath, fbxDirectory, fbxTextureDirectory))
+        {
+            if (File.Exists(candidate))
+                return Path.GetFullPath(candidate);
+        }
+
+        return null;
+    }
+
+    private static IEnumerable<string> EnumerateExternalTextureCandidates(
+        string? preferredExternalTexturePath,
+        string originalTexturePath,
+        string fbxDirectory,
+        string fbxTextureDirectory)
+    {
+        foreach (var rawPath in new[] { preferredExternalTexturePath, originalTexturePath })
+        {
+            if (string.IsNullOrWhiteSpace(rawPath))
+                continue;
+
+            var normalizedPath = rawPath.Replace('/', Path.DirectorySeparatorChar).Replace('\\', Path.DirectorySeparatorChar).Trim();
+            if (string.IsNullOrWhiteSpace(normalizedPath))
+                continue;
+
+            if (Path.IsPathRooted(normalizedPath))
+                yield return normalizedPath;
+
+            yield return Path.Combine(fbxDirectory, normalizedPath);
+            yield return Path.Combine(fbxDirectory, Path.GetFileName(normalizedPath));
+            yield return Path.Combine(fbxTextureDirectory, Path.GetFileName(normalizedPath));
+
+            var fileNameWithoutExtension = Path.GetFileNameWithoutExtension(normalizedPath);
+            if (!string.IsNullOrWhiteSpace(fileNameWithoutExtension))
+            {
+                yield return Path.Combine(fbxDirectory, fileNameWithoutExtension + ".png");
+                yield return Path.Combine(fbxTextureDirectory, fileNameWithoutExtension + ".png");
+            }
+        }
     }
 
     private static PackFile CreatePackTextureFromExternalFile(
         string externalPath,
         TextureType textureType,
         FbxImporterSettings settings,
-        string textureFileName)
+        string textureFileName,
+        bool processImage)
     {
         var extension = Path.GetExtension(externalPath);
         if (string.Equals(extension, ".dds", StringComparison.OrdinalIgnoreCase))
             return new PackFile(textureFileName, new MemorySource(File.ReadAllBytes(externalPath)));
 
-        return PngToDdsImporter.Import(externalPath, textureType, settings.SelectedGame, textureFileName);
+        return PngToDdsImporter.Import(externalPath, textureType, settings.SelectedGame, textureFileName, processImage);
     }
 
-    private static string BuildImportedTextureFileName(
-        FbxImporterSettings settings,
-        IRmvMaterial material,
-        TextureType textureType,
-        string externalPath)
+    private static bool ShouldProcessExternalTextureForImport(TextureType textureType, bool isAeRoundtripTexture)
     {
-        var modelName = SanitizeFileName(material.ModelName);
-        var baseName = SanitizeFileName(GetOutputBaseName(settings.InputFbxFile));
-        var suffix = ResolveTextureFileSuffix(textureType);
-        return $"{baseName}_{modelName}_{suffix}.dds";
+        // AE exported material maps are written as Blender-friendly PNGs and must be
+        // converted back to the WH3 channel layout on reimport. Fresh Blender-authored
+        // *_material_map.png files are expected to already be WH3 material maps, so do
+        // not swap their channels blindly.
+        if (textureType == TextureType.MaterialMap)
+            return isAeRoundtripTexture;
+
+        return true;
     }
 
-    private static string ResolveTextureFileSuffix(TextureType textureType)
+    private static bool IsAeRoundtripTexture(string originalTexturePath, string? preferredExternalTexturePath)
     {
-        return textureType switch
-        {
-            TextureType.Normal => "normal",
-            TextureType.MaterialMap => "material_map",
-            TextureType.Mask => "mask",
-            TextureType.Ambient_occlusion => "ao",
-            TextureType.Specular => "specular",
-            TextureType.Gloss => "gloss",
-            TextureType.Emissive => "emissive",
-            TextureType.Blood => "blood",
-            TextureType.BaseColour => "base_colour",
-            TextureType.Diffuse => "diffuse",
-            _ => textureType.ToString().ToLowerInvariant(),
-        };
+        if (string.IsNullOrWhiteSpace(originalTexturePath) || string.IsNullOrWhiteSpace(preferredExternalTexturePath))
+            return false;
+
+        var originalExtension = Path.GetExtension(originalTexturePath.Replace('/', Path.DirectorySeparatorChar).Replace('\', Path.DirectorySeparatorChar));
+        var externalExtension = Path.GetExtension(preferredExternalTexturePath.Replace('/', Path.DirectorySeparatorChar).Replace('\', Path.DirectorySeparatorChar));
+
+        if (!string.Equals(originalExtension, ".dds", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        if (string.Equals(externalExtension, ".dds", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        return !string.Equals(NormalizePackPath(originalTexturePath), NormalizePackPath(preferredExternalTexturePath), StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string ResolveTexturePackFolder(FbxImporterSettings settings)
+    {
+        var destinationPath = NormalizePackPath(settings.DestinationPackPath);
+        if (string.IsNullOrWhiteSpace(destinationPath))
+            return "tex";
+
+        var lastSegment = destinationPath.Split('\\', StringSplitOptions.RemoveEmptyEntries).LastOrDefault();
+        if (string.Equals(lastSegment, "tex", StringComparison.OrdinalIgnoreCase))
+            return destinationPath;
+
+        return CombinePackPath(destinationPath, "tex");
+    }
+
+    private static string BuildImportedTextureFileName(string originalTexturePath, string externalPath)
+    {
+        var originalFileName = Path.GetFileName(originalTexturePath.Replace('/', '\\'));
+        if (!string.IsNullOrWhiteSpace(originalFileName))
+            return EnsureDdsExtension(SanitizeFileName(originalFileName));
+
+        var externalFileName = Path.GetFileName(externalPath);
+        if (!string.IsNullOrWhiteSpace(externalFileName))
+            return EnsureDdsExtension(SanitizeFileName(externalFileName));
+
+        return "texture.dds";
+    }
+
+    private static string EnsureDdsExtension(string fileName)
+    {
+        var extension = Path.GetExtension(fileName);
+        if (string.Equals(extension, ".dds", StringComparison.OrdinalIgnoreCase))
+            return fileName;
+
+        var nameWithoutExtension = Path.GetFileNameWithoutExtension(fileName);
+        if (string.IsNullOrWhiteSpace(nameWithoutExtension))
+            return "texture.dds";
+
+        return nameWithoutExtension + ".dds";
+    }
+
+    private static string NormalizePackPath(string path)
+    {
+        return path.Replace('/', '\\').Trim().TrimEnd('\\');
     }
 
     private static string SanitizeFileName(string? value)
@@ -288,8 +424,12 @@ public sealed class FbxImporter
         if (string.IsNullOrWhiteSpace(value))
             return "texture";
 
+        var fileName = Path.GetFileName(value.Replace('/', '\\'));
+        if (string.IsNullOrWhiteSpace(fileName))
+            fileName = value;
+
         var invalid = Path.GetInvalidFileNameChars();
-        var chars = value.Select(ch => invalid.Contains(ch) || ch == ' ' ? '_' : ch).ToArray();
+        var chars = fileName.Select(ch => invalid.Contains(ch) || ch == ' ' ? '_' : ch).ToArray();
         return new string(chars);
     }
 

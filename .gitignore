@@ -342,3 +342,8 @@ healthchecksdb
 
 # MonoGame build outputs
 /GameWorld/ContentProject/Content/bin/
+
+# Local archives / generated patches
+*.zip
+*.7z
+*.rar
