@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -100,7 +100,8 @@ namespace Editors.ImportExport.Importing.Importers.GltfToRmv.Helper
                 var DEBUG___textureName = itText.Texture.PrimaryImage.Name;
 
                 // import texture PNG -> DDS
-                var ddsPackFile = PngToDdsImporter.Import(texPath, textureType, gameType, Path.GetFileName(texturePackFolder));
+                var processImage = ShouldProcessTextureForImport(textureType, settings);
+                var ddsPackFile = PngToDdsImporter.Import(texPath, textureType, gameType, Path.GetFileName(texturePackFolder), processImage);
 
                 rmvModel.Material.SetTexture(textureType, texturePackFolder);
 
@@ -112,6 +113,17 @@ namespace Editors.ImportExport.Importing.Importers.GltfToRmv.Helper
                 }
 
             }
+        }
+
+
+        private static bool ShouldProcessTextureForImport(TextureType textureType, GltfImporterSettings settings)
+        {
+            return textureType switch
+            {
+                TextureType.MaterialMap => settings.ConvertMaterialFromBlenderType,
+                TextureType.Normal => settings.ConvertNormalTextureFromBlueToOrangeType,
+                _ => true
+            };
         }
 
         private static string GetTexturePackFolder(GltfImporterSettings settings, string meshName, string postFixString)

@@ -237,8 +237,7 @@ public sealed class FbxImporter
 
                     if (!importedByTargetPath.ContainsKey(packTexturePath))
                     {
-                        var isAeRoundtripTexture = IsAeRoundtripTexture(texture.Path, preferredExternalTexturePath);
-                        var processImage = ShouldProcessExternalTextureForImport(effectiveTextureType, isAeRoundtripTexture);
+                        var processImage = ShouldProcessExternalTextureForImport(effectiveTextureType, settings);
                         var texturePackFile = CreatePackTextureFromExternalFile(externalPath, effectiveTextureType, settings, textureFileName, processImage);
                         _packFileService.AddFilesToPack(settings.DestinationPackFileContainer, [new NewPackFileEntry(texturePackFolder, texturePackFile)]);
                         importedByTargetPath[packTexturePath] = packTexturePath;
@@ -346,16 +345,14 @@ public sealed class FbxImporter
         return PngToDdsImporter.Import(externalPath, textureType, settings.SelectedGame, textureFileName, processImage);
     }
 
-    private static bool ShouldProcessExternalTextureForImport(TextureType textureType, bool isAeRoundtripTexture)
+    private static bool ShouldProcessExternalTextureForImport(TextureType textureType, FbxImporterSettings settings)
     {
-        // AE exported material maps are written as Blender-friendly PNGs and must be
-        // converted back to the WH3 channel layout on reimport. Fresh Blender-authored
-        // *_material_map.png files are expected to already be WH3 material maps, so do
-        // not swap their channels blindly.
-        if (textureType == TextureType.MaterialMap)
-            return isAeRoundtripTexture;
-
-        return true;
+        return textureType switch
+        {
+            TextureType.MaterialMap => settings.ConvertMaterialFromBlenderType,
+            TextureType.Normal => settings.ConvertNormalTextureFromBlueToOrangeType,
+            _ => true
+        };
     }
 
     private static bool IsAeRoundtripTexture(string originalTexturePath, string? preferredExternalTexturePath)
@@ -363,8 +360,8 @@ public sealed class FbxImporter
         if (string.IsNullOrWhiteSpace(originalTexturePath) || string.IsNullOrWhiteSpace(preferredExternalTexturePath))
             return false;
 
-        var originalExtension = Path.GetExtension(originalTexturePath.Replace('/', Path.DirectorySeparatorChar).Replace('\', Path.DirectorySeparatorChar));
-        var externalExtension = Path.GetExtension(preferredExternalTexturePath.Replace('/', Path.DirectorySeparatorChar).Replace('\', Path.DirectorySeparatorChar));
+        var originalExtension = Path.GetExtension(originalTexturePath.Replace('/', Path.DirectorySeparatorChar).Replace('\\', Path.DirectorySeparatorChar));
+        var externalExtension = Path.GetExtension(preferredExternalTexturePath.Replace('/', Path.DirectorySeparatorChar).Replace('\\', Path.DirectorySeparatorChar));
 
         if (!string.Equals(originalExtension, ".dds", StringComparison.OrdinalIgnoreCase))
             return false;

@@ -1,4 +1,5 @@
 using Editors.ImportExport.Common.FbxSdk;
+using Editors.ImportExport.Importing.Importers.PngToDds.Helpers;
 using Editors.ImportExport.Misc;
 using MeshImportExport;
 using GameWorld.Core.Services;
@@ -209,7 +210,14 @@ namespace Editors.ImportExport.Exporting.Exporters.RmvToFbx
                 {
                     var pixel = bitmap.GetPixel(x, y);
                     var xRed = pixel.A;
-                    var yGreen = GammaComponent(pixel.G, 2.2f);
+
+                    // TextureHelper/Pfim decodes the linear DDS normal channel into a PNG
+                    // value that is effectively linearized. Re-encode it for the external
+                    // blue/purple normal PNG so a CA DDS -> PNG -> CA DDS roundtrip keeps
+                    // the green/Y channel close to the original. Do not do this on import;
+                    // import must only repack channels.
+                    var yGreen = ColorChannels.GammaComponent(pixel.G, 1.0f / 2.2f);
+
                     bitmap.SetPixel(x, y, Color.FromArgb(255, xRed, yGreen, 255));
                 }
             }
@@ -260,12 +268,6 @@ namespace Editors.ImportExport.Exporting.Exporters.RmvToFbx
             return output.ToArray();
         }
 
-        private static byte GammaComponent(byte value, float gamma)
-        {
-            var normalized = value / 255.0;
-            var transformed = Math.Pow(normalized, gamma) * 255.0;
-            return (byte)Math.Clamp((int)Math.Round(transformed), 0, 255);
-        }
 
         private static string NormalizePackPath(string path)
         {

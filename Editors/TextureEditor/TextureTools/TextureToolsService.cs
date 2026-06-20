@@ -23,27 +23,74 @@ namespace Editors.TextureEditor.TextureTools
 
             ValidateTexconv(options.TexconvPath);
 
+            log.Add($"DDS -> PNG settings: kind={options.TextureKind}, output={(options.OutputBesideInput ? "beside input" : (string.IsNullOrWhiteSpace(options.OutputFolderName) ? DefaultOutputPngFolder : options.OutputFolderName.Trim()))}, overwrite={options.Overwrite}, recursive={options.Recursive}");
+            log.Add(options.ConvertTwOrangeNormalToBlueNormal
+                ? "DDS normal conversion enabled: TW-orange normals are exported as Blender/glTF blue normals."
+                : "DDS normal conversion disabled: DDS -> PNG only changes the file format.");
+            log.Add(options.ConvertMaterialMapChannels
+                ? "Material map channel swap enabled: R/B channels are swapped during the format conversion."
+                : "Material map channel swap disabled: material map channels are preserved.");
+
             var processed = 0;
+            var warnings = 0;
             var errors = 0;
 
             foreach (var file in files)
             {
+                var tempDir = Path.Combine(Path.GetTempPath(), "AssetEditor_TextureTools", Guid.NewGuid().ToString("N"));
                 try
                 {
+                    var kind = ResolveTextureKind(file, options.TextureKind);
+                    if (options.TextureKind == TextureToolKind.Auto && kind == TextureToolKind.BaseColour && !IsRecognizedBaseColourMap(file))
+                    {
+                        warnings++;
+                        log.Add($"WARNING: Auto mode treated '{Path.GetFileName(file)}' as BaseColour because no known suffix was found. Select Texture kind manually if this is wrong.");
+                    }
+
                     var output = ResolveOutputDirectory(file, options.OutputBesideInput, options.OutputFolderName, DefaultOutputPngFolder);
                     Directory.CreateDirectory(output);
-                    RunTexconv(options.TexconvPath, ["-y", "-ft", "png", "-o", output, file], log);
+
+                    var needsNormalConversion = options.ConvertTwOrangeNormalToBlueNormal && kind == TextureToolKind.Normal;
+                    var needsMaterialMapSwap = options.ConvertMaterialMapChannels && kind == TextureToolKind.MaterialMap;
+
+                    if (!needsNormalConversion && !needsMaterialMapSwap)
+                    {
+                        RunTexconv(options.TexconvPath, BuildDdsToPngArguments(file, output, options.Overwrite), log);
+                        processed++;
+                        log.Add($"DDS -> PNG ({kind}, format only): {file}");
+                        continue;
+                    }
+
+                    Directory.CreateDirectory(tempDir);
+                    RunTexconv(options.TexconvPath, BuildDdsToPngArguments(file, tempDir, true), log);
+                    var tempPng = Directory.GetFiles(tempDir, "*.png").FirstOrDefault();
+                    if (tempPng == null)
+                        throw new InvalidOperationException("texconv did not generate a temporary PNG.");
+
+                    var expectedOutput = Path.Combine(output, Path.GetFileNameWithoutExtension(file) + ".png");
+                    if (File.Exists(expectedOutput))
+                    {
+                        if (!options.Overwrite)
+                            throw new IOException($"Output already exists: {expectedOutput}");
+                        File.Delete(expectedOutput);
+                    }
+
+                    TransformPng(tempPng, expectedOutput, 0, false, false, false, needsNormalConversion, needsMaterialMapSwap, false);
                     processed++;
-                    log.Add($"DDS -> PNG: {file}");
+                    log.Add($"DDS -> PNG ({kind}, channel conversion): {file}");
                 }
                 catch (Exception ex)
                 {
                     errors++;
                     log.Add($"ERROR: {file}: {ex.Message}");
                 }
+                finally
+                {
+                    try { if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true); } catch { }
+                }
             }
 
-            return new TextureToolRunResult(processed, 0, errors, log);
+            return new TextureToolRunResult(processed, warnings, errors, log);
         }
 
         public TextureToolRunResult ConvertPngToDds(TextureToolOptions options)
@@ -55,6 +102,14 @@ namespace Editors.TextureEditor.TextureTools
 
             ValidateTexconv(options.TexconvPath);
 
+            log.Add($"PNG -> DDS settings: kind={options.TextureKind}, output={(options.OutputBesideInput ? "beside input" : (string.IsNullOrWhiteSpace(options.OutputFolderName) ? DefaultOutputDdsFolder : options.OutputFolderName.Trim()))}, overwrite={options.Overwrite}, recursive={options.Recursive}");
+            log.Add(options.ConvertBlueNormalToTwOrangeNormal
+                ? "Normal conversion enabled: blue/purple normals are repacked to TW orange."
+                : "Normal conversion disabled: normal channels are preserved.");
+            log.Add(options.ConvertMaterialMapChannels
+                ? "Material map channel swap enabled: R/B channels are swapped before DDS compression."
+                : "Material map channel swap disabled: material map channels are preserved.");
+
             var processed = 0;
             var warnings = 0;
             var errors = 0;
@@ -64,19 +119,32 @@ namespace Editors.TextureEditor.TextureTools
                 try
                 {
                     var kind = ResolveTextureKind(file, options.TextureKind);
+                    if (options.TextureKind == TextureToolKind.Auto && kind == TextureToolKind.BaseColour && !IsRecognizedBaseColourMap(file))
+                    {
+                        warnings++;
+                        log.Add($"WARNING: Auto mode treated '{Path.GetFileName(file)}' as BaseColour because no known suffix was found. Select Texture kind manually if this is wrong.");
+                    }
+                    if (kind == TextureToolKind.MaterialMap)
+                        log.Add(options.ConvertMaterialMapChannels
+                            ? $"INFO: MaterialMap '{Path.GetFileName(file)}' will have R/B swapped, then be compressed as BC1_UNORM linear. No specular/gloss combine is performed here."
+                            : $"INFO: MaterialMap '{Path.GetFileName(file)}' is compressed as BC1_UNORM linear with channels preserved. No specular/gloss combine is performed here.");
+                    if (kind == TextureToolKind.Normal && !options.ConvertBlueNormalToTwOrangeNormal)
+                        log.Add($"INFO: Normal conversion is OFF for '{Path.GetFileName(file)}'. Use this only for already TW-orange packed normals.");
+
                     var output = ResolveOutputDirectory(file, options.OutputBesideInput, options.OutputFolderName, DefaultOutputDdsFolder);
                     Directory.CreateDirectory(output);
 
                     var inputForTexconv = file;
                     string? temporaryPng = null;
 
-                    var needsPixelTransform = options.ConvertBlueNormalToTwOrangeNormal && kind == TextureToolKind.Normal;
+                    var needsNormalConversion = options.ConvertBlueNormalToTwOrangeNormal && kind == TextureToolKind.Normal;
+                    var needsMaterialMapSwap = options.ConvertMaterialMapChannels && kind == TextureToolKind.MaterialMap;
                     var needsGeometryTransform = options.RotationDegrees != 0 || options.MirrorX || options.MirrorY;
 
-                    if (needsPixelTransform || needsGeometryTransform)
+                    if (needsNormalConversion || needsMaterialMapSwap || needsGeometryTransform)
                     {
                         temporaryPng = Path.Combine(output, $"__ae_texture_tool_{Guid.NewGuid():N}.png");
-                        TransformPng(file, temporaryPng, options.RotationDegrees, options.MirrorX, options.MirrorY, needsPixelTransform, options.AdjustTwNormalChannelsForMirror && kind == TextureToolKind.Normal);
+                        TransformPng(file, temporaryPng, options.RotationDegrees, options.MirrorX, options.MirrorY, needsNormalConversion, false, needsMaterialMapSwap, options.AdjustTwNormalChannelsForMirror && kind == TextureToolKind.Normal);
                         inputForTexconv = temporaryPng;
                     }
 
@@ -125,7 +193,7 @@ namespace Editors.TextureEditor.TextureTools
 
                     var transformed = Path.Combine(tempDir, "__ae_transformed.png");
                     var kind = ResolveTextureKind(file, options.TextureKind);
-                    TransformPng(tempPng, transformed, options.RotationDegrees, options.MirrorX, options.MirrorY, false, options.AdjustTwNormalChannelsForMirror && kind == TextureToolKind.Normal);
+                    TransformPng(tempPng, transformed, options.RotationDegrees, options.MirrorX, options.MirrorY, false, false, options.ConvertMaterialMapChannels && kind == TextureToolKind.MaterialMap, options.AdjustTwNormalChannelsForMirror && kind == TextureToolKind.Normal);
 
                     var output = options.OutputBesideInput
                         ? Path.GetDirectoryName(file)!
@@ -294,16 +362,36 @@ namespace Editors.TextureEditor.TextureTools
                 return TextureToolKind.MaterialMap;
             if (name.EndsWith("_mask") || name.EndsWith("_msk"))
                 return TextureToolKind.Mask;
-            if (name.EndsWith("_base_colour") || name.EndsWith("_basecolor") || name.EndsWith("_bc") || name.EndsWith("_diffuse") || name.EndsWith("_d"))
+            if (IsRecognizedBaseColourMap(path))
                 return TextureToolKind.BaseColour;
 
             return TextureToolKind.BaseColour;
+        }
+
+        private static bool IsRecognizedBaseColourMap(string path)
+        {
+            var name = Path.GetFileNameWithoutExtension(path).ToLowerInvariant();
+            return name.EndsWith("_base_colour")
+                || name.EndsWith("_basecolor")
+                || name.EndsWith("_bc")
+                || name.EndsWith("_diffuse")
+                || name.EndsWith("_d");
         }
 
         private static bool IsNormalMap(string path)
         {
             var name = Path.GetFileNameWithoutExtension(path).ToLowerInvariant();
             return name.EndsWith("_n") || name.EndsWith("_normal") || name.EndsWith("_normal_map");
+        }
+
+        private static IReadOnlyList<string> BuildDdsToPngArguments(string inputFile, string outputFolder, bool overwrite)
+        {
+            var args = new List<string>();
+            if (overwrite)
+                args.Add("-y");
+
+            args.AddRange(["-ft", "png", "-o", outputFolder, inputFile]);
+            return args;
         }
 
         private static IReadOnlyList<string> BuildPngToDdsArguments(string inputFile, string outputFolder, TextureToolKind kind, bool overwrite)
@@ -378,13 +466,19 @@ namespace Editors.TextureEditor.TextureTools
                 File.Move(produced, expected);
         }
 
-        private static void TransformPng(string input, string output, int rotationDegrees, bool mirrorX, bool mirrorY, bool blueNormalToTwOrange, bool adjustTwNormalForMirror)
+        private static void TransformPng(string input, string output, int rotationDegrees, bool mirrorX, bool mirrorY, bool blueNormalToTwOrange, bool twOrangeNormalToBlue, bool swapMaterialMapChannels, bool adjustTwNormalForMirror)
         {
             var bitmap = LoadBitmap(input);
             var pixels = CopyPixels(bitmap, out var width, out var height);
 
             if (blueNormalToTwOrange)
                 ConvertBlueNormalToTwOrange(pixels);
+
+            if (twOrangeNormalToBlue)
+                ConvertTwOrangeNormalToBlue(pixels);
+
+            if (swapMaterialMapChannels)
+                SwapRedBlueChannels(pixels, forceOpaqueAlpha: true);
 
             if (adjustTwNormalForMirror)
                 AdjustTwOrangeNormalForMirror(pixels, mirrorX, mirrorY);
@@ -454,6 +548,36 @@ namespace Editors.TextureEditor.TextureTools
                 pixels[i + 2] = 255;    // R
                 pixels[i + 3] = oldR;   // A stores original red/X
             }
+        }
+
+        private static void ConvertTwOrangeNormalToBlue(byte[] pixels)
+        {
+            for (var i = 0; i < pixels.Length; i += 4)
+            {
+                var oldA = pixels[i + 3];
+                var oldG = pixels[i + 1];
+                pixels[i + 0] = 255;                              // B
+                pixels[i + 1] = GammaComponent(oldG, 1.0f / 2.2f); // G
+                pixels[i + 2] = oldA;                             // R stores previous alpha/X
+                pixels[i + 3] = 255;                              // A
+            }
+        }
+
+        private static void SwapRedBlueChannels(byte[] pixels, bool forceOpaqueAlpha)
+        {
+            for (var i = 0; i < pixels.Length; i += 4)
+            {
+                (pixels[i + 0], pixels[i + 2]) = (pixels[i + 2], pixels[i + 0]);
+                if (forceOpaqueAlpha)
+                    pixels[i + 3] = 255;
+            }
+        }
+
+        private static byte GammaComponent(byte c, float gamma)
+        {
+            var v = c / 255.0;
+            var corrected = Math.Pow(v, gamma) * 255.0;
+            return (byte)Math.Clamp((int)Math.Round(corrected, MidpointRounding.AwayFromZero), 0, 255);
         }
 
         private static void AdjustTwOrangeNormalForMirror(byte[] pixels, bool mirrorX, bool mirrorY)

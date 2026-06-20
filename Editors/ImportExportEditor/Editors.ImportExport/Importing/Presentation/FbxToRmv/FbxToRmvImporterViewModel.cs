@@ -1,4 +1,4 @@
-﻿using System.IO;
+using System.IO;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Editors.ImportExport.Importing.Importers.FbxToRmv;
 using Editors.ImportExport.Importing.Presentation;
@@ -29,8 +29,8 @@ namespace Editors.ImportExport.Importing.Presentation.FbxToRmv
         [ObservableProperty] bool _importMeshes = true;
         [ObservableProperty] bool _importSkeleton = true;
         [ObservableProperty] bool _importMaterials = false;
-        [ObservableProperty] bool _convertFromBlenderMaterialMap = false;
-        [ObservableProperty] bool _convertNormalTextureToOrange = false;
+        [ObservableProperty] bool _convertFromBlenderMaterialMap = true;
+        [ObservableProperty] bool _convertNormalTextureToOrange = true;
         [ObservableProperty] bool _importAnimations = false;
         [ObservableProperty] float _animationKeysPerSecond = 20.0f;
         [ObservableProperty] bool _customSkeleton = false;

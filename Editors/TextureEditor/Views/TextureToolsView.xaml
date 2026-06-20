@@ -17,6 +17,7 @@
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
                 <TextBlock Grid.Row="0" Grid.Column="0" Text="texconv.exe" VerticalAlignment="Center" Margin="0,0,8,4"/>
@@ -27,6 +28,10 @@
                 <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding InputPath, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,8,0"/>
                 <Button Grid.Row="1" Grid.Column="2" Content="File" Command="{Binding BrowseFileCommand}" Margin="0,0,8,0"/>
                 <Button Grid.Row="1" Grid.Column="3" Content="Folder" Command="{Binding BrowseFolderCommand}"/>
+
+                <TextBlock Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="3"
+                           Text="Select either one file or a folder. Folder mode uses the recursive scan checkbox in each tool tab."
+                           TextWrapping="Wrap" Opacity="0.75" Margin="0,6,0,0"/>
             </Grid>
         </GroupBox>
 
@@ -38,60 +43,130 @@
 
             <TabControl Grid.Column="0" Margin="0,0,8,0">
                 <TabItem Header="DDS to PNG">
-                    <StackPanel Margin="10">
-                        <TextBlock Text="Convert DDS files to PNG files. Folder mode scans recursively when enabled." TextWrapping="Wrap" Margin="0,0,0,8"/>
-                        <CheckBox Content="Recursive folder scan" IsChecked="{Binding Recursive}" Margin="0,0,0,4"/>
-                        <CheckBox Content="Output beside input" IsChecked="{Binding OutputBesideInput}" Margin="0,0,0,4"/>
-                        <TextBlock Text="Output folder name" Margin="0,8,0,2"/>
-                        <TextBox Text="{Binding OutputFolderName, UpdateSourceTrigger=PropertyChanged}" ToolTip="Leave empty to use ConvPNG."/>
-                        <Button Content="Convert DDS to PNG" Command="{Binding ConvertDdsToPngCommand}" Margin="0,12,0,0"/>
-                    </StackPanel>
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <StackPanel Margin="10">
+                            <GroupBox Header="What this does" Margin="0,0,0,8">
+                                <TextBlock Margin="8" TextWrapping="Wrap"
+                                           Text="Converts DDS files to editable PNG files. Leave channel conversions OFF for pure format conversion; enable them only when you need TW-orange normal or material-map channel conversion for Blender/editing."/>
+                            </GroupBox>
+
+                            <CheckBox Content="Recursive folder scan" IsChecked="{Binding Recursive}" Margin="0,0,0,4"/>
+                            <CheckBox Content="Overwrite existing PNG" IsChecked="{Binding Overwrite}" Margin="0,0,0,4"/>
+                            <CheckBox Content="Output beside input" IsChecked="{Binding OutputBesideInput}" Margin="0,0,0,4"/>
+
+                            <TextBlock Text="Texture kind" Margin="0,10,0,2"/>
+                            <ComboBox ItemsSource="{Binding TextureKinds}" SelectedItem="{Binding TextureKind}"/>
+                            <TextBlock Text="{Binding TextureKindDescription}" TextWrapping="Wrap" Opacity="0.8" Margin="0,4,0,0"/>
+
+                            <CheckBox Content="Convert TW-orange normal maps to Blender blue normal maps"
+                                      IsChecked="{Binding ConvertTwOrangeNormalToBlueNormal}"
+                                      Margin="0,10,0,4"
+                                      ToolTip="ON when converting existing CA/TW normal DDS files to editable Blender PNG normals. OFF for format-only DDS to PNG."/>
+                            <TextBlock Text="{Binding DdsNormalConversionDescription}" TextWrapping="Wrap" Opacity="0.8" Margin="0,0,0,4"/>
+
+                            <CheckBox Content="Swap material-map R/B channels"
+                                      IsChecked="{Binding ConvertMaterialMapChannels}"
+                                      Margin="0,6,0,4"
+                                      ToolTip="Use only when converting between Blender/glTF-like material channels and CA/WH3 material-map channels. Turn OFF for format-only conversion."/>
+                            <TextBlock Text="{Binding MaterialMapConversionDescription}" TextWrapping="Wrap" Opacity="0.8" Margin="0,0,0,4"/>
+
+                            <TextBlock Text="Output folder name" Margin="0,8,0,2"/>
+                            <TextBox Text="{Binding OutputFolderName, UpdateSourceTrigger=PropertyChanged}"
+                                     ToolTip="Leave empty to use ConvPNG. Ignored when Output beside input is checked."/>
+                            <TextBlock Text="{Binding OutputLocationDescription}" TextWrapping="Wrap" Opacity="0.75" Margin="0,4,0,0"/>
+
+                            <Button Content="Convert DDS to PNG" Command="{Binding ConvertDdsToPngCommand}" Margin="0,12,0,0"/>
+                        </StackPanel>
+                    </ScrollViewer>
                 </TabItem>
 
                 <TabItem Header="PNG to DDS">
                     <ScrollViewer VerticalScrollBarVisibility="Auto">
                         <StackPanel Margin="10">
-                            <TextBlock Text="Convert PNG files to Total War DDS files. Auto mode detects _n, _material_map, _mask, _base_colour and similar suffixes." TextWrapping="Wrap" Margin="0,0,0,8"/>
+                            <GroupBox Header="Safe Total War texture rules" Margin="0,0,0,8">
+                                <StackPanel Margin="8">
+                                    <TextBlock Text="Auto detects suffixes: _base_colour/_basecolor, _normal/_n, _material_map, _mask." TextWrapping="Wrap"/>
+                                    <TextBlock Text="Base colour: BC1_UNORM_SRGB + sRGB. Material map: BC1_UNORM linear. Normal: BC3_UNORM linear." TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                    <TextBlock Text="Material map conversion here does not combine specular + gloss. Give it an already prepared material map, then choose the correct texture kind." TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                    <TextBlock Text="For standard blue/purple Blender normals, keep normal conversion ON. For already TW-orange normals, turn it OFF." TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                </StackPanel>
+                            </GroupBox>
+
                             <CheckBox Content="Recursive folder scan" IsChecked="{Binding Recursive}" Margin="0,0,0,4"/>
                             <CheckBox Content="Overwrite existing DDS" IsChecked="{Binding Overwrite}" Margin="0,0,0,4"/>
                             <CheckBox Content="Output beside input" IsChecked="{Binding OutputBesideInput}" Margin="0,0,0,4"/>
+
                             <TextBlock Text="Output folder name" Margin="0,8,0,2"/>
-                            <TextBox Text="{Binding OutputFolderName, UpdateSourceTrigger=PropertyChanged}" ToolTip="Leave empty to use ConvDDS."/>
-                            <TextBlock Text="Texture kind" Margin="0,8,0,2"/>
+                            <TextBox Text="{Binding OutputFolderName, UpdateSourceTrigger=PropertyChanged}"
+                                     ToolTip="Leave empty to use ConvDDS. Ignored when Output beside input is checked."/>
+                            <TextBlock Text="{Binding OutputLocationDescription}" TextWrapping="Wrap" Opacity="0.75" Margin="0,4,0,0"/>
+
+                            <TextBlock Text="Texture kind" Margin="0,10,0,2"/>
                             <ComboBox ItemsSource="{Binding TextureKinds}" SelectedItem="{Binding TextureKind}"/>
-                            <CheckBox Content="Convert blue normal maps to TW orange normal maps" IsChecked="{Binding ConvertBlueNormalToTwOrangeNormal}" Margin="0,8,0,4"/>
-                            <TextBlock Text="Optional PNG transform before conversion" Margin="0,8,0,2"/>
-                            <TextBox Text="{Binding RotationDegrees, UpdateSourceTrigger=PropertyChanged}" ToolTip="Only 0, 90, 180 and 270 are supported."/>
-                            <CheckBox Content="Mirror X" IsChecked="{Binding MirrorX}" Margin="0,8,0,4"/>
-                            <CheckBox Content="Mirror Y" IsChecked="{Binding MirrorY}" Margin="0,0,0,4"/>
-                            <CheckBox Content="Adjust TW-orange normal channels when mirroring" IsChecked="{Binding AdjustTwNormalChannelsForMirror}" Margin="0,0,0,4"/>
+                            <TextBlock Text="{Binding TextureKindDescription}" TextWrapping="Wrap" Opacity="0.8" Margin="0,4,0,0"/>
+
+                            <CheckBox Content="Convert blue/purple normal maps to TW-orange normal maps"
+                                      IsChecked="{Binding ConvertBlueNormalToTwOrangeNormal}"
+                                      Margin="0,10,0,4"
+                                      ToolTip="ON for Blender/glTF-style blue normals. OFF if the source normal is already orange TW packed."/>
+                            <TextBlock Text="{Binding NormalConversionDescription}" TextWrapping="Wrap" Opacity="0.8" Margin="0,0,0,4"/>
+
+                            <CheckBox Content="Swap material-map R/B channels before DDS compression"
+                                      IsChecked="{Binding ConvertMaterialMapChannels}"
+                                      Margin="0,8,0,4"
+                                      ToolTip="ON for Blender/glTF-like material maps that need CA/WH3 channel conversion. OFF for already CA/WH3 material maps or format-only conversion."/>
+                            <TextBlock Text="{Binding MaterialMapConversionDescription}" TextWrapping="Wrap" Opacity="0.8" Margin="0,0,0,4"/>
+
+                            <GroupBox Header="Optional PNG transform before conversion" Margin="0,10,0,0">
+                                <StackPanel Margin="8">
+                                    <TextBlock Text="Rotation degrees"/>
+                                    <TextBox Text="{Binding RotationDegrees, UpdateSourceTrigger=PropertyChanged}" ToolTip="Only 0, 90, 180 and 270 are supported."/>
+                                    <CheckBox Content="Mirror X" IsChecked="{Binding MirrorX}" Margin="0,8,0,4"/>
+                                    <CheckBox Content="Mirror Y" IsChecked="{Binding MirrorY}" Margin="0,0,0,4"/>
+                                    <CheckBox Content="Adjust TW-orange normal channels when mirroring" IsChecked="{Binding AdjustTwNormalChannelsForMirror}" Margin="0,0,0,4"/>
+                                    <TextBlock Text="{Binding TransformWarningDescription}" TextWrapping="Wrap" Opacity="0.8" Margin="0,4,0,0"/>
+                                </StackPanel>
+                            </GroupBox>
+
                             <Button Content="Convert PNG to DDS" Command="{Binding ConvertPngToDdsCommand}" Margin="0,12,0,0"/>
                         </StackPanel>
                     </ScrollViewer>
                 </TabItem>
 
                 <TabItem Header="Transform DDS">
-                    <StackPanel Margin="10">
-                        <TextBlock Text="Rotate or mirror DDS files by converting them through a temporary PNG and writing DDS back." TextWrapping="Wrap" Margin="0,0,0,8"/>
-                        <CheckBox Content="Recursive folder scan" IsChecked="{Binding Recursive}" Margin="0,0,0,4"/>
-                        <CheckBox Content="Overwrite existing DDS" IsChecked="{Binding Overwrite}" Margin="0,0,0,4"/>
-                        <CheckBox Content="Output beside input" IsChecked="{Binding OutputBesideInput}" Margin="0,0,0,4"/>
-                        <TextBlock Text="Texture kind" Margin="0,8,0,2"/>
-                        <ComboBox ItemsSource="{Binding TextureKinds}" SelectedItem="{Binding TextureKind}"/>
-                        <TextBlock Text="Rotation degrees" Margin="0,8,0,2"/>
-                        <TextBox Text="{Binding RotationDegrees, UpdateSourceTrigger=PropertyChanged}"/>
-                        <CheckBox Content="Mirror X" IsChecked="{Binding MirrorX}" Margin="0,8,0,4"/>
-                        <CheckBox Content="Mirror Y" IsChecked="{Binding MirrorY}" Margin="0,0,0,4"/>
-                        <CheckBox Content="Adjust TW-orange normal channels when mirroring" IsChecked="{Binding AdjustTwNormalChannelsForMirror}" Margin="0,0,0,4"/>
-                        <Button Content="Transform DDS" Command="{Binding TransformDdsCommand}" Margin="0,12,0,0"/>
-                    </StackPanel>
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <StackPanel Margin="10">
+                            <GroupBox Header="What this does" Margin="0,0,0,8">
+                                <TextBlock Margin="8" TextWrapping="Wrap"
+                                           Text="Rotates or mirrors DDS files by temporarily converting to PNG and writing DDS back. Use with care on normal maps: mirroring can be fixed, arbitrary rotation still needs visual checking."/>
+                            </GroupBox>
+
+                            <CheckBox Content="Recursive folder scan" IsChecked="{Binding Recursive}" Margin="0,0,0,4"/>
+                            <CheckBox Content="Overwrite existing DDS" IsChecked="{Binding Overwrite}" Margin="0,0,0,4"/>
+                            <CheckBox Content="Output beside input" IsChecked="{Binding OutputBesideInput}" Margin="0,0,0,4"/>
+
+                            <TextBlock Text="Texture kind" Margin="0,8,0,2"/>
+                            <ComboBox ItemsSource="{Binding TextureKinds}" SelectedItem="{Binding TextureKind}"/>
+                            <TextBlock Text="{Binding TextureKindDescription}" TextWrapping="Wrap" Opacity="0.8" Margin="0,4,0,0"/>
+
+                            <TextBlock Text="Rotation degrees" Margin="0,8,0,2"/>
+                            <TextBox Text="{Binding RotationDegrees, UpdateSourceTrigger=PropertyChanged}" ToolTip="Only 0, 90, 180 and 270 are supported."/>
+                            <CheckBox Content="Mirror X" IsChecked="{Binding MirrorX}" Margin="0,8,0,4"/>
+                            <CheckBox Content="Mirror Y" IsChecked="{Binding MirrorY}" Margin="0,0,0,4"/>
+                            <CheckBox Content="Adjust TW-orange normal channels when mirroring" IsChecked="{Binding AdjustTwNormalChannelsForMirror}" Margin="0,0,0,4"/>
+                            <TextBlock Text="{Binding TransformWarningDescription}" TextWrapping="Wrap" Opacity="0.8" Margin="0,4,0,0"/>
+
+                            <Button Content="Transform DDS" Command="{Binding TransformDdsCommand}" Margin="0,12,0,0"/>
+                        </StackPanel>
+                    </ScrollViewer>
                 </TabItem>
 
                 <TabItem Header="Rename">
                     <StackPanel Margin="10">
-                        <TextBlock Text="Replace text in file names. Folder mode can recurse." TextWrapping="Wrap" Margin="0,0,0,8"/>
+                        <TextBlock Text="Replace text in file names. Folder mode can recurse. Use Dry run first to check the exact changes before renaming files." TextWrapping="Wrap" Margin="0,0,0,8"/>
                         <CheckBox Content="Recursive folder scan" IsChecked="{Binding Recursive}" Margin="0,0,0,4"/>
                         <CheckBox Content="Dry run" IsChecked="{Binding DryRun}" Margin="0,0,0,4"/>
+                        <TextBlock Text="{Binding DeleteSafetyDescription}" TextWrapping="Wrap" Opacity="0.8" Margin="0,0,0,8"/>
                         <TextBlock Text="Text to replace" Margin="0,8,0,2"/>
                         <TextBox Text="{Binding RenameOldText, UpdateSourceTrigger=PropertyChanged}"/>
                         <TextBlock Text="New text" Margin="0,8,0,2"/>
@@ -102,11 +177,12 @@
 
                 <TabItem Header="Delete">
                     <StackPanel Margin="10">
-                        <TextBlock Text="Delete PNG or DDS files with optional normal-map filtering. Dry run is enabled by default." TextWrapping="Wrap" Margin="0,0,0,8"/>
+                        <TextBlock Text="Delete PNG or DDS files with optional normal-map filtering. Dry run is enabled by default; keep it enabled for the first pass." TextWrapping="Wrap" Margin="0,0,0,8"/>
                         <CheckBox Content="Recursive folder scan" IsChecked="{Binding Recursive}" Margin="0,0,0,4"/>
                         <CheckBox Content="Dry run" IsChecked="{Binding DryRun}" Margin="0,0,0,4"/>
+                        <TextBlock Text="{Binding DeleteSafetyDescription}" TextWrapping="Wrap" Opacity="0.8" Margin="0,0,0,8"/>
                         <TextBlock Text="Extension" Margin="0,8,0,2"/>
-                        <TextBox Text="{Binding DeleteExtension, UpdateSourceTrigger=PropertyChanged}"/>
+                        <TextBox Text="{Binding DeleteExtension, UpdateSourceTrigger=PropertyChanged}" ToolTip="Example: png or dds. Do not include the dot."/>
                         <CheckBox Content="Include normal maps (_n / _normal)" IsChecked="{Binding DeleteNormals}" Margin="0,8,0,4"/>
                         <CheckBox Content="Include other maps" IsChecked="{Binding DeleteOtherMaps}" Margin="0,0,0,4"/>
                         <Button Content="Delete matching files" Command="{Binding DeleteFilesCommand}" Margin="0,12,0,0"/>
@@ -115,7 +191,7 @@
 
                 <TabItem Header="Blender">
                     <StackPanel Margin="10">
-                        <TextBlock Text="Helper script from the old Python tools. This removes vertex groups from selected mesh objects in Blender." TextWrapping="Wrap" Margin="0,0,0,8"/>
+                        <TextBlock Text="Helper script from the old Python tools. It removes vertex groups from selected mesh objects in Blender. Use it only on selected meshes that should become unskinned/static." TextWrapping="Wrap" Margin="0,0,0,8"/>
                         <Button Content="Copy remove vertex groups script" Command="{Binding CopyBlenderRemoveVertexGroupsScriptCommand}"/>
                     </StackPanel>
                 </TabItem>

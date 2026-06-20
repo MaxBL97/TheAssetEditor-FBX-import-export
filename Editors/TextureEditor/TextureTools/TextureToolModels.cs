@@ -22,6 +22,8 @@ namespace Editors.TextureEditor.TextureTools
         bool OutputBesideInput,
         TextureToolKind TextureKind,
         bool ConvertBlueNormalToTwOrangeNormal,
+        bool ConvertTwOrangeNormalToBlueNormal,
+        bool ConvertMaterialMapChannels,
         bool AdjustTwNormalChannelsForMirror,
         int RotationDegrees,
         bool MirrorX,

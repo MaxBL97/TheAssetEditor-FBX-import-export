@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -6,7 +6,6 @@ using System.Text;
 using System.Threading.Tasks;
 using DirectXTexNet;
 using Editors.ImportExport.Common.Interfaces;
-using Microsoft.Xna.Framework;
 
 namespace Editors.ImportExport.Importing.Importers.PngToDds.Helpers.ImageProcessor
 {
@@ -36,7 +35,6 @@ namespace Editors.ImportExport.Importing.Importers.PngToDds.Helpers.ImageProcess
                 rgbaBytes[index + 2] = 255;
                 rgbaBytes[index + 3] = x_red;
 
-                rgbaBytes[index + 1] = ColorChannels.GammaComponent(rgbaBytes[index + 1], 1 / 2.2f);
             }
 
             // copy processed pixel back to the image pixel pointer½

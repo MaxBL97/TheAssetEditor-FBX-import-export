@@ -22,6 +22,8 @@ namespace Editors.TextureEditor.TextureTools
         private bool _outputBesideInput;
         private TextureToolKind _textureKind = TextureToolKind.Auto;
         private bool _convertBlueNormalToTwOrangeNormal = true;
+        private bool _convertTwOrangeNormalToBlueNormal = false;
+        private bool _convertMaterialMapChannels = true;
         private bool _adjustTwNormalChannelsForMirror = true;
         private int _rotationDegrees;
         private bool _mirrorX;
@@ -38,26 +40,82 @@ namespace Editors.TextureEditor.TextureTools
 
         public string TexconvPath { get => _texconvPath; set => SetAndNotify(ref _texconvPath, value); }
         public string InputPath { get => _inputPath; set => SetAndNotify(ref _inputPath, value); }
-        public string OutputFolderName { get => _outputFolderName; set => SetAndNotify(ref _outputFolderName, value); }
-        public bool Recursive { get => _recursive; set => SetAndNotify(ref _recursive, value); }
-        public bool Overwrite { get => _overwrite; set => SetAndNotify(ref _overwrite, value); }
-        public bool OutputBesideInput { get => _outputBesideInput; set => SetAndNotify(ref _outputBesideInput, value); }
-        public TextureToolKind TextureKind { get => _textureKind; set => SetAndNotify(ref _textureKind, value); }
-        public bool ConvertBlueNormalToTwOrangeNormal { get => _convertBlueNormalToTwOrangeNormal; set => SetAndNotify(ref _convertBlueNormalToTwOrangeNormal, value); }
-        public bool AdjustTwNormalChannelsForMirror { get => _adjustTwNormalChannelsForMirror; set => SetAndNotify(ref _adjustTwNormalChannelsForMirror, value); }
-        public int RotationDegrees { get => _rotationDegrees; set => SetAndNotify(ref _rotationDegrees, value); }
-        public bool MirrorX { get => _mirrorX; set => SetAndNotify(ref _mirrorX, value); }
-        public bool MirrorY { get => _mirrorY; set => SetAndNotify(ref _mirrorY, value); }
+        public string OutputFolderName { get => _outputFolderName; set { SetAndNotify(ref _outputFolderName, value); NotifyGuidanceChanged(); } }
+        public bool Recursive { get => _recursive; set { SetAndNotify(ref _recursive, value); NotifyGuidanceChanged(); } }
+        public bool Overwrite { get => _overwrite; set { SetAndNotify(ref _overwrite, value); NotifyGuidanceChanged(); } }
+        public bool OutputBesideInput { get => _outputBesideInput; set { SetAndNotify(ref _outputBesideInput, value); NotifyGuidanceChanged(); } }
+        public TextureToolKind TextureKind { get => _textureKind; set { SetAndNotify(ref _textureKind, value); NotifyGuidanceChanged(); } }
+        public bool ConvertBlueNormalToTwOrangeNormal { get => _convertBlueNormalToTwOrangeNormal; set { SetAndNotify(ref _convertBlueNormalToTwOrangeNormal, value); NotifyGuidanceChanged(); } }
+        public bool ConvertTwOrangeNormalToBlueNormal { get => _convertTwOrangeNormalToBlueNormal; set { SetAndNotify(ref _convertTwOrangeNormalToBlueNormal, value); NotifyGuidanceChanged(); } }
+        public bool ConvertMaterialMapChannels { get => _convertMaterialMapChannels; set { SetAndNotify(ref _convertMaterialMapChannels, value); NotifyGuidanceChanged(); } }
+        public bool AdjustTwNormalChannelsForMirror { get => _adjustTwNormalChannelsForMirror; set { SetAndNotify(ref _adjustTwNormalChannelsForMirror, value); NotifyGuidanceChanged(); } }
+        public int RotationDegrees { get => _rotationDegrees; set { SetAndNotify(ref _rotationDegrees, value); NotifyGuidanceChanged(); } }
+        public bool MirrorX { get => _mirrorX; set { SetAndNotify(ref _mirrorX, value); NotifyGuidanceChanged(); } }
+        public bool MirrorY { get => _mirrorY; set { SetAndNotify(ref _mirrorY, value); NotifyGuidanceChanged(); } }
         public string RenameOldText { get => _renameOldText; set => SetAndNotify(ref _renameOldText, value); }
         public string RenameNewText { get => _renameNewText; set => SetAndNotify(ref _renameNewText, value); }
         public string DeleteExtension { get => _deleteExtension; set => SetAndNotify(ref _deleteExtension, value); }
         public bool DeleteNormals { get => _deleteNormals; set => SetAndNotify(ref _deleteNormals, value); }
         public bool DeleteOtherMaps { get => _deleteOtherMaps; set => SetAndNotify(ref _deleteOtherMaps, value); }
-        public bool DryRun { get => _dryRun; set => SetAndNotify(ref _dryRun, value); }
+        public bool DryRun { get => _dryRun; set { SetAndNotify(ref _dryRun, value); NotifyGuidanceChanged(); } }
         public bool IsBusy { get => _isBusy; set { SetAndNotify(ref _isBusy, value); RefreshCommands(); } }
 
         public Array TextureKinds { get; } = Enum.GetValues(typeof(TextureToolKind));
         public ObservableCollection<string> LogLines { get; } = [];
+
+
+        public string OutputLocationDescription => OutputBesideInput
+            ? "Output beside input is ON: converted files overwrite/write next to the source files when overwrite is enabled."
+            : $"Output beside input is OFF: converted files go to '{ResolvedOutputFolderPreview}'.";
+
+        public string ResolvedOutputFolderPreview => string.IsNullOrWhiteSpace(OutputFolderName)
+            ? "ConvDDS / ConvPNG / TransformedDDS depending on the tab"
+            : OutputFolderName.Trim();
+
+        public string TextureKindDescription => TextureKind switch
+        {
+            TextureToolKind.Auto => "Auto detects by suffix: _base_colour/_basecolor, _normal/_n, _material_map, _mask. Unknown names are treated as BaseColour, so select the kind manually for unsafe names.",
+            TextureToolKind.BaseColour => "BaseColour: BC1_UNORM_SRGB with -srgb. Use for albedo/diffuse/base_colour only.",
+            TextureToolKind.Normal => "Normal: BC3_UNORM linear. PNG->DDS can repack standard blue/purple normals to TW orange. DDS->PNG can export TW orange normals to Blender blue preview normals.",
+            TextureToolKind.MaterialMap => "MaterialMap: BC1_UNORM linear. Optional R/B channel swap is available. This tool does not combine specular + gloss yet.",
+            TextureToolKind.Mask => "Mask: BC1_UNORM linear. Use for WH3 mask maps unless a specific older-game workflow needs another format.",
+            TextureToolKind.GenericLinear => "GenericLinear: BC1_UNORM linear. Use for data maps that must not receive sRGB conversion.",
+            TextureToolKind.GenericSrgb => "GenericSrgb: BC1_UNORM_SRGB with -srgb. Use for ordinary colour textures.",
+            _ => string.Empty
+        };
+
+        public string NormalConversionDescription => ConvertBlueNormalToTwOrangeNormal
+            ? "PNG -> DDS normal conversion ON: blue/purple normals are repacked to TW orange as R=255, G=G, B=0, A=R before DDS compression."
+            : "PNG -> DDS normal conversion OFF: normal pixels are not repacked; use only when the source is already TW-orange packed or when you only want format conversion.";
+
+        public string DdsNormalConversionDescription => ConvertTwOrangeNormalToBlueNormal
+            ? "DDS -> PNG normal conversion ON: TW-orange normals are exported as Blender/glTF-style blue normals using the same rule as FBX export."
+            : "DDS -> PNG normal conversion OFF: DDS -> PNG only changes the file format and keeps channels as texconv outputs them.";
+
+        public string MaterialMapConversionDescription => ConvertMaterialMapChannels
+            ? "Material map channel swap ON: R/B channels are swapped before output. Use for Blender/glTF-like material maps that need conversion to or from CA/WH3 layout."
+            : "Material map channel swap OFF: channels are preserved. Use for format-only conversion or already CA/WH3 material maps.";
+
+        public string TransformWarningDescription
+        {
+            get
+            {
+                var hasTransform = RotationDegrees != 0 || MirrorX || MirrorY;
+                if (!hasTransform)
+                    return "No image transform is currently selected.";
+
+                if (TextureKind == TextureToolKind.Normal || TextureKind == TextureToolKind.Auto)
+                    return AdjustTwNormalChannelsForMirror
+                        ? "Mirror/rotate is selected. For TW-orange normal maps, mirror channel adjustment is ON; still review the result visually."
+                        : "Mirror/rotate is selected. Normal-channel mirror adjustment is OFF; mirrored normal maps may shade incorrectly.";
+
+                return "Mirror/rotate is selected. This is safe for colour maps, but review data maps after conversion.";
+            }
+        }
+
+        public string DeleteSafetyDescription => DryRun
+            ? "Dry run is ON: delete/rename actions only list what would happen."
+            : "Dry run is OFF: delete/rename actions will modify files immediately.";
 
         public ICommand BrowseTexconvCommand { get; }
         public ICommand BrowseFileCommand { get; }
@@ -98,6 +156,8 @@ namespace Editors.TextureEditor.TextureTools
             OutputBesideInput,
             TextureKind,
             ConvertBlueNormalToTwOrangeNormal,
+            ConvertTwOrangeNormalToBlueNormal,
+            ConvertMaterialMapChannels,
             AdjustTwNormalChannelsForMirror,
             RotationDegrees,
             MirrorX,
@@ -157,6 +217,19 @@ namespace Editors.TextureEditor.TextureTools
             };
             if (dialog.ShowDialog() == WinForms.DialogResult.OK)
                 InputPath = dialog.SelectedPath;
+        }
+
+
+        private void NotifyGuidanceChanged()
+        {
+            NotifyPropertyChanged(nameof(OutputLocationDescription));
+            NotifyPropertyChanged(nameof(ResolvedOutputFolderPreview));
+            NotifyPropertyChanged(nameof(TextureKindDescription));
+            NotifyPropertyChanged(nameof(NormalConversionDescription));
+            NotifyPropertyChanged(nameof(DdsNormalConversionDescription));
+            NotifyPropertyChanged(nameof(MaterialMapConversionDescription));
+            NotifyPropertyChanged(nameof(TransformWarningDescription));
+            NotifyPropertyChanged(nameof(DeleteSafetyDescription));
         }
 
         private void RefreshCommands()
