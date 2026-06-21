@@ -45,10 +45,16 @@ namespace Editors.Shared.Core.Services
 
         public void SaveDDSTextureAsPNG(string texturePath)
         {
-            RunTextConv($"-ft png -y -o \"{Path.GetDirectoryName(texturePath)}\" \"{texturePath}\"");
+            var outputDirectory = Path.GetDirectoryName(texturePath);
+            var exitCode = RunTextConv($"-ft png -y -o \"{outputDirectory}\" \"{texturePath}\"");
+            if (exitCode != 0)
+            {
+                _logger.Here().Warning("Default DDS to PNG conversion failed for {TexturePath}. Retrying with R8G8B8A8_UNORM output.", texturePath);
+                RunTextConv($"-f R8G8B8A8_UNORM -ft png -y -o \"{outputDirectory}\" \"{texturePath}\"");
+            }
         }
 
-        void RunTextConv(string cmd)
+        int RunTextConv(string cmd)
         {
             var texconvPath = $"{DirectoryHelper.Applications}\\texconv.exe";
 
@@ -57,11 +63,20 @@ namespace Editors.Shared.Core.Services
             pProcess.StartInfo.Arguments = cmd;
             pProcess.StartInfo.UseShellExecute = false;
             pProcess.StartInfo.RedirectStandardOutput = true;
+            pProcess.StartInfo.RedirectStandardError = true;
             pProcess.StartInfo.WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden;
             pProcess.StartInfo.CreateNoWindow = true;
             pProcess.Start();
-            var result = pProcess.StandardOutput.ReadToEnd();
-            _logger.Here().Information(result);
+            var outputTask = pProcess.StandardOutput.ReadToEndAsync();
+            var errorTask = pProcess.StandardError.ReadToEndAsync();
+            pProcess.WaitForExit();
+            var result = outputTask.GetAwaiter().GetResult();
+            var error = errorTask.GetAwaiter().GetResult();
+            if (!string.IsNullOrWhiteSpace(result))
+                _logger.Here().Information(result);
+            if (!string.IsNullOrWhiteSpace(error))
+                _logger.Here().Warning(error);
+            return pProcess.ExitCode;
         }
     }
 

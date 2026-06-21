@@ -56,14 +56,14 @@ namespace Editors.TextureEditor.TextureTools
 
                     if (!needsNormalConversion && !needsMaterialMapSwap)
                     {
-                        RunTexconv(options.TexconvPath, BuildDdsToPngArguments(file, output, options.Overwrite), log);
+                        RunDdsToPngWithFallback(options.TexconvPath, file, output, options.Overwrite, log);
                         processed++;
                         log.Add($"DDS -> PNG ({kind}, format only): {file}");
                         continue;
                     }
 
                     Directory.CreateDirectory(tempDir);
-                    RunTexconv(options.TexconvPath, BuildDdsToPngArguments(file, tempDir, true), log);
+                    RunDdsToPngWithFallback(options.TexconvPath, file, tempDir, true, log);
                     var tempPng = Directory.GetFiles(tempDir, "*.png").FirstOrDefault();
                     if (tempPng == null)
                         throw new InvalidOperationException("texconv did not generate a temporary PNG.");
@@ -187,7 +187,7 @@ namespace Editors.TextureEditor.TextureTools
                 Directory.CreateDirectory(tempDir);
                 try
                 {
-                    RunTexconv(options.TexconvPath, ["-y", "-ft", "png", "-o", tempDir, file], log);
+                    RunDdsToPngWithFallback(options.TexconvPath, file, tempDir, true, log);
                     var tempPng = Directory.GetFiles(tempDir, "*.png").FirstOrDefault();
                     if (tempPng == null)
                         throw new InvalidOperationException("texconv did not generate a temporary PNG.");
@@ -519,7 +519,7 @@ namespace Editors.TextureEditor.TextureTools
             {
                 var ddsTempDir = Path.Combine(tempDir, Guid.NewGuid().ToString("N"));
                 Directory.CreateDirectory(ddsTempDir);
-                RunTexconv(texconvPath, BuildDdsToPngArguments(file, ddsTempDir, true), log);
+                RunDdsToPngWithFallback(texconvPath, file, ddsTempDir, true, log);
                 var png = Directory.GetFiles(ddsTempDir, "*.png").FirstOrDefault()
                     ?? throw new InvalidOperationException($"texconv did not decode DDS input '{file}'.");
                 return CopyPixels(LoadBitmap(png), out width, out height);
@@ -640,14 +640,30 @@ namespace Editors.TextureEditor.TextureTools
             return name.EndsWith("_n") || name.EndsWith("_normal") || name.EndsWith("_normal_map");
         }
 
-        private static IReadOnlyList<string> BuildDdsToPngArguments(string inputFile, string outputFolder, bool overwrite)
+        private static IReadOnlyList<string> BuildDdsToPngArguments(string inputFile, string outputFolder, bool overwrite, bool forceRgbaOutput = false)
         {
             var args = new List<string>();
             if (overwrite)
                 args.Add("-y");
 
+            if (forceRgbaOutput)
+                args.AddRange(["-f", "R8G8B8A8_UNORM"]);
+
             args.AddRange(["-ft", "png", "-o", outputFolder, inputFile]);
             return args;
+        }
+
+        private static void RunDdsToPngWithFallback(string texconvPath, string inputFile, string outputFolder, bool overwrite, List<string> log)
+        {
+            try
+            {
+                RunTexconv(texconvPath, BuildDdsToPngArguments(inputFile, outputFolder, overwrite), log);
+            }
+            catch (InvalidOperationException ex)
+            {
+                log.Add($"WARNING: DDS -> PNG failed with the default texconv output format for '{Path.GetFileName(inputFile)}'. Retrying with R8G8B8A8_UNORM PNG output. Original error: {ex.Message}");
+                RunTexconv(texconvPath, BuildDdsToPngArguments(inputFile, outputFolder, overwrite, forceRgbaOutput: true), log);
+            }
         }
 
         private static IReadOnlyList<string> BuildPngToDdsArguments(string inputFile, string outputFolder, TextureToolKind kind, bool overwrite)
