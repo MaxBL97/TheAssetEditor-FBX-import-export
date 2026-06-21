@@ -87,7 +87,7 @@
                                 <StackPanel Margin="8">
                                     <TextBlock Text="Auto detects suffixes: _base_colour/_basecolor, _normal/_n, _material_map, _mask." TextWrapping="Wrap"/>
                                     <TextBlock Text="Base colour: BC1_UNORM_SRGB + sRGB. Material map: BC1_UNORM linear. Normal: BC3_UNORM linear." TextWrapping="Wrap" Margin="0,4,0,0"/>
-                                    <TextBlock Text="Material map conversion here does not combine specular + gloss. Give it an already prepared material map, then choose the correct texture kind." TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                    <TextBlock Text="Material map channel swap works on one already prepared material map. Use the Material Builder tab when you need to combine separate specular + gloss textures." TextWrapping="Wrap" Margin="0,4,0,0"/>
                                     <TextBlock Text="For standard blue/purple Blender normals, keep normal conversion ON. For already TW-orange normals, turn it OFF." TextWrapping="Wrap" Margin="0,4,0,0"/>
                                 </StackPanel>
                             </GroupBox>
@@ -129,6 +129,70 @@
                             </GroupBox>
 
                             <Button Content="Convert PNG to DDS" Command="{Binding ConvertPngToDdsCommand}" Margin="0,12,0,0"/>
+                        </StackPanel>
+                    </ScrollViewer>
+                </TabItem>
+
+
+                <TabItem Header="Material Builder">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <StackPanel Margin="10">
+                            <GroupBox Header="Build WH3 material_map from old specular/gloss" Margin="0,0,0,8">
+                                <StackPanel Margin="8">
+                                    <TextBlock Text="Use this when you have old separate specular and gloss textures and need one *_material_map.dds." TextWrapping="Wrap"/>
+                                    <TextBlock Text="You can provide both inputs, only specular, or only gloss. Missing data uses the default values below." TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                    <TextBlock Text="Output channels: R = specular intensity / metalness, G = roughness from gloss, B = 0, A = 255. Output DDS format is BC1_UNORM linear." TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                </StackPanel>
+                            </GroupBox>
+
+                            <CheckBox Content="Recursive folder scan" IsChecked="{Binding Recursive}" Margin="0,0,0,4"/>
+                            <CheckBox Content="Overwrite existing material maps" IsChecked="{Binding Overwrite}" Margin="0,0,0,4"/>
+                            <CheckBox Content="Output beside input" IsChecked="{Binding OutputBesideInput}" Margin="0,0,0,4"/>
+
+                            <TextBlock Text="Output folder name" Margin="0,8,0,2"/>
+                            <TextBox Text="{Binding OutputFolderName, UpdateSourceTrigger=PropertyChanged}"
+                                     ToolTip="Leave empty to use ConvMaterialMap. Ignored when Output beside input is checked."/>
+                            <TextBlock Text="{Binding OutputLocationDescription}" TextWrapping="Wrap" Opacity="0.75" Margin="0,4,0,0"/>
+
+                            <TextBlock Text="Specular input (optional)" Margin="0,10,0,2"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBox Grid.Column="0" Text="{Binding MaterialSpecularInputPath, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,8,0"
+                                         ToolTip="File or folder. Supported inputs: PNG or DDS. Suffixes like _specular, _spec, _s are matched automatically in folder mode."/>
+                                <Button Grid.Column="1" Content="File" Command="{Binding BrowseMaterialSpecularFileCommand}" Margin="0,0,8,0"/>
+                                <Button Grid.Column="2" Content="Folder" Command="{Binding BrowseMaterialSpecularFolderCommand}"/>
+                            </Grid>
+
+                            <TextBlock Text="Gloss input (optional)" Margin="0,10,0,2"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBox Grid.Column="0" Text="{Binding MaterialGlossInputPath, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,8,0"
+                                         ToolTip="File or folder. Supported inputs: PNG or DDS. Suffixes like _gloss, _gloss_map, _g are matched automatically in folder mode."/>
+                                <Button Grid.Column="1" Content="File" Command="{Binding BrowseMaterialGlossFileCommand}" Margin="0,0,8,0"/>
+                                <Button Grid.Column="2" Content="Folder" Command="{Binding BrowseMaterialGlossFolderCommand}"/>
+                            </Grid>
+
+                            <CheckBox Content="Invert gloss to roughness (recommended)"
+                                      IsChecked="{Binding InvertGlossToRoughness}"
+                                      Margin="0,10,0,4"
+                                      ToolTip="ON: roughness = 255 - gloss. OFF: roughness = gloss, for inputs already authored as roughness."/>
+
+                            <TextBlock Text="Default metalness when specular is missing (0-255)" Margin="0,8,0,2"/>
+                            <TextBox Text="{Binding DefaultMaterialMetalness, UpdateSourceTrigger=PropertyChanged}" ToolTip="Default is 0: non-metal / no specular metalness."/>
+
+                            <TextBlock Text="Default roughness when gloss is missing (0-255)" Margin="0,8,0,2"/>
+                            <TextBox Text="{Binding DefaultMaterialRoughness, UpdateSourceTrigger=PropertyChanged}" ToolTip="Default is 128: neutral roughness when no gloss map is available."/>
+
+                            <TextBlock Text="{Binding MaterialMapBuilderDescription}" TextWrapping="Wrap" Opacity="0.8" Margin="0,8,0,0"/>
+                            <Button Content="Build material map DDS" Command="{Binding BuildMaterialMapCommand}" Margin="0,12,0,0"/>
                         </StackPanel>
                     </ScrollViewer>
                 </TabItem>

@@ -29,5 +29,17 @@ namespace Editors.TextureEditor.TextureTools
         bool MirrorX,
         bool MirrorY);
 
+    public sealed record MaterialMapBuildOptions(
+        string TexconvPath,
+        string SpecularInputPath,
+        string GlossInputPath,
+        string OutputFolderName,
+        bool Recursive,
+        bool Overwrite,
+        bool OutputBesideInput,
+        bool InvertGlossToRoughness,
+        int DefaultMetalness,
+        int DefaultRoughness);
+
     public sealed record TextureToolRunResult(int ProcessedCount, int WarningCount, int ErrorCount, IReadOnlyList<string> LogLines);
 }

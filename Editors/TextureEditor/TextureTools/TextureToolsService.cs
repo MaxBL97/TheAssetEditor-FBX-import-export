@@ -13,6 +13,7 @@ namespace Editors.TextureEditor.TextureTools
     {
         private const string DefaultOutputDdsFolder = "ConvDDS";
         private const string DefaultOutputPngFolder = "ConvPNG";
+        private const string DefaultOutputMaterialMapFolder = "ConvMaterialMap";
 
         public TextureToolRunResult ConvertDdsToPng(TextureToolOptions options)
         {
@@ -226,6 +227,107 @@ namespace Editors.TextureEditor.TextureTools
             return new TextureToolRunResult(processed, warnings, errors, log);
         }
 
+
+        public TextureToolRunResult BuildMaterialMap(MaterialMapBuildOptions options)
+        {
+            var log = new List<string>();
+            if (string.IsNullOrWhiteSpace(options.SpecularInputPath) && string.IsNullOrWhiteSpace(options.GlossInputPath))
+                return WarnOnly(log, "Set at least one input: specular, gloss, or both.");
+
+            ValidateTexconv(options.TexconvPath);
+
+            var processed = 0;
+            var warnings = 0;
+            var errors = 0;
+            var pairs = BuildMaterialMapPairs(options, log, ref warnings);
+
+            if (pairs.Count == 0)
+                return WarnOnly(log, "No PNG or DDS specular/gloss files found.");
+
+            log.Add($"Material map builder: pairs={pairs.Count}, output={(options.OutputBesideInput ? "beside input" : (string.IsNullOrWhiteSpace(options.OutputFolderName) ? DefaultOutputMaterialMapFolder : options.OutputFolderName.Trim()))}, overwrite={options.Overwrite}, recursive={options.Recursive}");
+            log.Add("Output rule: R = specular intensity/metalness, G = roughness from gloss, B = 0, A = 255, DDS = BC1_UNORM linear.");
+            log.Add(options.InvertGlossToRoughness
+                ? "Gloss rule: roughness = 255 - gloss. This is the usual gloss/smoothness -> roughness conversion."
+                : "Gloss rule: roughness = gloss. Use this only if your gloss input is already authored as roughness.");
+            log.Add($"Missing specular fallback: metalness={ClampByte(options.DefaultMetalness)}. Missing gloss fallback: roughness={ClampByte(options.DefaultRoughness)}.");
+
+            foreach (var pair in pairs)
+            {
+                var tempDir = Path.Combine(Path.GetTempPath(), "AssetEditor_TextureTools", Guid.NewGuid().ToString("N"));
+                try
+                {
+                    Directory.CreateDirectory(tempDir);
+
+                    byte[]? specularPixels = null;
+                    byte[]? glossPixels = null;
+                    var width = 0;
+                    var height = 0;
+
+                    if (pair.SpecularPath != null)
+                    {
+                        specularPixels = LoadTextureAsBgra(pair.SpecularPath, options.TexconvPath, log, tempDir, out width, out height);
+                    }
+
+                    if (pair.GlossPath != null)
+                    {
+                        glossPixels = LoadTextureAsBgra(pair.GlossPath, options.TexconvPath, log, tempDir, out var glossWidth, out var glossHeight);
+                        if (specularPixels == null)
+                        {
+                            width = glossWidth;
+                            height = glossHeight;
+                        }
+                        else if (glossWidth != width || glossHeight != height)
+                        {
+                            throw new InvalidOperationException($"Specular/gloss size mismatch for '{pair.Key}': specular={width}x{height}, gloss={glossWidth}x{glossHeight}.");
+                        }
+                    }
+
+                    if (width <= 0 || height <= 0)
+                        throw new InvalidOperationException($"Unable to resolve input size for '{pair.Key}'.");
+
+                    if (pair.SpecularPath == null)
+                    {
+                        warnings++;
+                        log.Add($"WARNING: '{pair.Key}' has no specular input. Using default metalness {ClampByte(options.DefaultMetalness)}.");
+                    }
+
+                    if (pair.GlossPath == null)
+                    {
+                        warnings++;
+                        log.Add($"WARNING: '{pair.Key}' has no gloss input. Using default roughness {ClampByte(options.DefaultRoughness)}.");
+                    }
+
+                    var materialPixels = BuildMaterialMapPixels(specularPixels, glossPixels, options.InvertGlossToRoughness, ClampByte(options.DefaultMetalness), ClampByte(options.DefaultRoughness), width, height);
+                    var materialPng = Path.Combine(tempDir, pair.Key + "_material_map.png");
+                    SavePng(materialPng, materialPixels, width, height);
+
+                    var anchor = pair.SpecularPath ?? pair.GlossPath ?? options.SpecularInputPath ?? options.GlossInputPath;
+                    var output = ResolveOutputDirectory(anchor, options.OutputBesideInput, options.OutputFolderName, DefaultOutputMaterialMapFolder);
+                    Directory.CreateDirectory(output);
+
+                    var expectedDds = Path.Combine(output, pair.Key + "_material_map.dds");
+                    if (File.Exists(expectedDds) && !options.Overwrite)
+                        throw new IOException($"Output already exists: {expectedDds}");
+
+                    RunTexconv(options.TexconvPath, BuildPngToDdsArguments(materialPng, output, TextureToolKind.MaterialMap, options.Overwrite), log);
+                    MoveTexconvOutputToExpectedName(materialPng, materialPng, output, ".dds", options.Overwrite);
+                    processed++;
+                    log.Add($"Material map built: {expectedDds}");
+                }
+                catch (Exception ex)
+                {
+                    errors++;
+                    log.Add($"ERROR: {pair.Key}: {ex.Message}");
+                }
+                finally
+                {
+                    try { if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true); } catch { }
+                }
+            }
+
+            return new TextureToolRunResult(processed, warnings, errors, log);
+        }
+
         public TextureToolRunResult RenameFiles(string inputPath, string oldText, string newText, bool recursive, bool dryRun)
         {
             var log = new List<string>();
@@ -304,6 +406,160 @@ namespace Editors.TextureEditor.TextureTools
 
             return new TextureToolRunResult(processed, 0, errors, log);
         }
+
+
+        private sealed record MaterialMapSourcePair(string Key, string? SpecularPath, string? GlossPath);
+
+        private static List<MaterialMapSourcePair> BuildMaterialMapPairs(MaterialMapBuildOptions options, List<string> log, ref int warnings)
+        {
+            var specularFiles = EnumerateTextureFiles(options.SpecularInputPath, options.Recursive).ToList();
+            var glossFiles = EnumerateTextureFiles(options.GlossInputPath, options.Recursive).ToList();
+
+            if (!string.IsNullOrWhiteSpace(options.SpecularInputPath) && specularFiles.Count == 0)
+            {
+                warnings++;
+                log.Add("WARNING: Specular input path was set, but no PNG/DDS files were found.");
+            }
+
+            if (!string.IsNullOrWhiteSpace(options.GlossInputPath) && glossFiles.Count == 0)
+            {
+                warnings++;
+                log.Add("WARNING: Gloss input path was set, but no PNG/DDS files were found.");
+            }
+
+            var specularByKey = specularFiles
+                .GroupBy(GetMaterialBaseKey, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+            var glossByKey = glossFiles
+                .GroupBy(GetMaterialBaseKey, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+
+            var keys = specularByKey.Keys.Concat(glossByKey.Keys)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(x => x, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            var output = new List<MaterialMapSourcePair>();
+            foreach (var key in keys)
+            {
+                specularByKey.TryGetValue(key, out var specular);
+                glossByKey.TryGetValue(key, out var gloss);
+                output.Add(new MaterialMapSourcePair(SanitizeFileName(key), specular, gloss));
+            }
+
+            return output;
+        }
+
+        private static IEnumerable<string> EnumerateTextureFiles(string inputPath, bool recursive)
+        {
+            if (string.IsNullOrWhiteSpace(inputPath))
+                yield break;
+
+            if (File.Exists(inputPath))
+            {
+                if (IsSupportedMaterialInput(inputPath))
+                    yield return inputPath;
+                yield break;
+            }
+
+            if (!Directory.Exists(inputPath))
+                yield break;
+
+            var option = recursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
+            foreach (var file in Directory.EnumerateFiles(inputPath, "*", option))
+            {
+                if (IsSupportedMaterialInput(file))
+                    yield return file;
+            }
+        }
+
+        private static bool IsSupportedMaterialInput(string path)
+        {
+            var extension = Path.GetExtension(path);
+            return extension.Equals(".png", StringComparison.OrdinalIgnoreCase)
+                || extension.Equals(".dds", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string GetMaterialBaseKey(string path)
+        {
+            var name = Path.GetFileNameWithoutExtension(path);
+            var lower = name.ToLowerInvariant();
+            var suffixes = new[]
+            {
+                "_specular_map", "_specular", "_spec", "_spc", "_s",
+                "_gloss_map", "_gloss", "_glossiness", "_smoothness", "_roughness", "_g",
+                "_material_map", "_mat_map", "_mat"
+            };
+
+            foreach (var suffix in suffixes)
+            {
+                if (lower.EndsWith(suffix, StringComparison.OrdinalIgnoreCase))
+                    return name[..^suffix.Length];
+            }
+
+            return name;
+        }
+
+        private static string SanitizeFileName(string value)
+        {
+            foreach (var invalid in Path.GetInvalidFileNameChars())
+                value = value.Replace(invalid, '_');
+            return string.IsNullOrWhiteSpace(value) ? "material" : value.Trim();
+        }
+
+        private static byte[] LoadTextureAsBgra(string file, string texconvPath, List<string> log, string tempDir, out int width, out int height)
+        {
+            var extension = Path.GetExtension(file);
+            if (extension.Equals(".png", StringComparison.OrdinalIgnoreCase))
+            {
+                return CopyPixels(LoadBitmap(file), out width, out height);
+            }
+
+            if (extension.Equals(".dds", StringComparison.OrdinalIgnoreCase))
+            {
+                var ddsTempDir = Path.Combine(tempDir, Guid.NewGuid().ToString("N"));
+                Directory.CreateDirectory(ddsTempDir);
+                RunTexconv(texconvPath, BuildDdsToPngArguments(file, ddsTempDir, true), log);
+                var png = Directory.GetFiles(ddsTempDir, "*.png").FirstOrDefault()
+                    ?? throw new InvalidOperationException($"texconv did not decode DDS input '{file}'.");
+                return CopyPixels(LoadBitmap(png), out width, out height);
+            }
+
+            throw new NotSupportedException($"Unsupported material input format: {extension}");
+        }
+
+        private static byte[] BuildMaterialMapPixels(byte[]? specularPixels, byte[]? glossPixels, bool invertGlossToRoughness, byte defaultMetalness, byte defaultRoughness, int width, int height)
+        {
+            var output = new byte[width * height * 4];
+            for (var i = 0; i < output.Length; i += 4)
+            {
+                var metalness = defaultMetalness;
+                if (specularPixels != null)
+                    metalness = ToLuma(specularPixels[i + 2], specularPixels[i + 1], specularPixels[i + 0]);
+
+                var roughness = defaultRoughness;
+                if (glossPixels != null)
+                {
+                    var gloss = ToLuma(glossPixels[i + 2], glossPixels[i + 1], glossPixels[i + 0]);
+                    roughness = invertGlossToRoughness ? (byte)(255 - gloss) : gloss;
+                }
+
+                output[i + 0] = 0;         // B unused for CA material maps produced by this helper.
+                output[i + 1] = roughness; // G roughness.
+                output[i + 2] = metalness; // R specular/metalness intensity.
+                output[i + 3] = 255;       // A unused/opaque.
+            }
+
+            return output;
+        }
+
+        private static byte ToLuma(byte r, byte g, byte b)
+        {
+            var value = (0.2126 * r) + (0.7152 * g) + (0.0722 * b);
+            return (byte)Math.Clamp((int)Math.Round(value, MidpointRounding.AwayFromZero), 0, 255);
+        }
+
+        private static byte ClampByte(int value) => (byte)Math.Clamp(value, 0, 255);
 
         private static TextureToolRunResult WarnOnly(List<string> log, string message)
         {

@@ -25,6 +25,11 @@ namespace Editors.TextureEditor.TextureTools
         private bool _convertTwOrangeNormalToBlueNormal = false;
         private bool _convertMaterialMapChannels = true;
         private bool _adjustTwNormalChannelsForMirror = true;
+        private string _materialSpecularInputPath = string.Empty;
+        private string _materialGlossInputPath = string.Empty;
+        private bool _invertGlossToRoughness = true;
+        private int _defaultMaterialMetalness = 0;
+        private int _defaultMaterialRoughness = 128;
         private int _rotationDegrees;
         private bool _mirrorX;
         private bool _mirrorY;
@@ -49,6 +54,11 @@ namespace Editors.TextureEditor.TextureTools
         public bool ConvertTwOrangeNormalToBlueNormal { get => _convertTwOrangeNormalToBlueNormal; set { SetAndNotify(ref _convertTwOrangeNormalToBlueNormal, value); NotifyGuidanceChanged(); } }
         public bool ConvertMaterialMapChannels { get => _convertMaterialMapChannels; set { SetAndNotify(ref _convertMaterialMapChannels, value); NotifyGuidanceChanged(); } }
         public bool AdjustTwNormalChannelsForMirror { get => _adjustTwNormalChannelsForMirror; set { SetAndNotify(ref _adjustTwNormalChannelsForMirror, value); NotifyGuidanceChanged(); } }
+        public string MaterialSpecularInputPath { get => _materialSpecularInputPath; set { SetAndNotify(ref _materialSpecularInputPath, value); NotifyGuidanceChanged(); } }
+        public string MaterialGlossInputPath { get => _materialGlossInputPath; set { SetAndNotify(ref _materialGlossInputPath, value); NotifyGuidanceChanged(); } }
+        public bool InvertGlossToRoughness { get => _invertGlossToRoughness; set { SetAndNotify(ref _invertGlossToRoughness, value); NotifyGuidanceChanged(); } }
+        public int DefaultMaterialMetalness { get => _defaultMaterialMetalness; set { SetAndNotify(ref _defaultMaterialMetalness, value); NotifyGuidanceChanged(); } }
+        public int DefaultMaterialRoughness { get => _defaultMaterialRoughness; set { SetAndNotify(ref _defaultMaterialRoughness, value); NotifyGuidanceChanged(); } }
         public int RotationDegrees { get => _rotationDegrees; set { SetAndNotify(ref _rotationDegrees, value); NotifyGuidanceChanged(); } }
         public bool MirrorX { get => _mirrorX; set { SetAndNotify(ref _mirrorX, value); NotifyGuidanceChanged(); } }
         public bool MirrorY { get => _mirrorY; set { SetAndNotify(ref _mirrorY, value); NotifyGuidanceChanged(); } }
@@ -69,7 +79,7 @@ namespace Editors.TextureEditor.TextureTools
             : $"Output beside input is OFF: converted files go to '{ResolvedOutputFolderPreview}'.";
 
         public string ResolvedOutputFolderPreview => string.IsNullOrWhiteSpace(OutputFolderName)
-            ? "ConvDDS / ConvPNG / TransformedDDS depending on the tab"
+            ? "ConvDDS / ConvPNG / ConvMaterialMap / TransformedDDS depending on the tab"
             : OutputFolderName.Trim();
 
         public string TextureKindDescription => TextureKind switch
@@ -77,7 +87,7 @@ namespace Editors.TextureEditor.TextureTools
             TextureToolKind.Auto => "Auto detects by suffix: _base_colour/_basecolor, _normal/_n, _material_map, _mask. Unknown names are treated as BaseColour, so select the kind manually for unsafe names.",
             TextureToolKind.BaseColour => "BaseColour: BC1_UNORM_SRGB with -srgb. Use for albedo/diffuse/base_colour only.",
             TextureToolKind.Normal => "Normal: BC3_UNORM linear. PNG->DDS can repack standard blue/purple normals to TW orange. DDS->PNG can export TW orange normals to Blender blue preview normals.",
-            TextureToolKind.MaterialMap => "MaterialMap: BC1_UNORM linear. Optional R/B channel swap is available. This tool does not combine specular + gloss yet.",
+            TextureToolKind.MaterialMap => "MaterialMap: BC1_UNORM linear. Optional R/B channel swap is available. Use the Material Builder tab to combine old specular/gloss inputs into a WH3 material map.",
             TextureToolKind.Mask => "Mask: BC1_UNORM linear. Use for WH3 mask maps unless a specific older-game workflow needs another format.",
             TextureToolKind.GenericLinear => "GenericLinear: BC1_UNORM linear. Use for data maps that must not receive sRGB conversion.",
             TextureToolKind.GenericSrgb => "GenericSrgb: BC1_UNORM_SRGB with -srgb. Use for ordinary colour textures.",
@@ -95,6 +105,21 @@ namespace Editors.TextureEditor.TextureTools
         public string MaterialMapConversionDescription => ConvertMaterialMapChannels
             ? "Material map channel swap ON: R/B channels are swapped before output. Use for Blender/glTF-like material maps that need conversion to or from CA/WH3 layout."
             : "Material map channel swap OFF: channels are preserved. Use for format-only conversion or already CA/WH3 material maps.";
+
+
+        public string MaterialMapBuilderDescription
+        {
+            get
+            {
+                var specular = string.IsNullOrWhiteSpace(MaterialSpecularInputPath)
+                    ? $"Specular missing: R/metalness uses default {ClampUiByte(DefaultMaterialMetalness)}."
+                    : "Specular set: R/metalness comes from specular luminance.";
+                var gloss = string.IsNullOrWhiteSpace(MaterialGlossInputPath)
+                    ? $"Gloss missing: G/roughness uses default {ClampUiByte(DefaultMaterialRoughness)}."
+                    : (InvertGlossToRoughness ? "Gloss set: G/roughness = 255 - gloss." : "Gloss set: G/roughness = gloss." );
+                return specular + " " + gloss + " Output is *_material_map.dds as BC1_UNORM linear.";
+            }
+        }
 
         public string TransformWarningDescription
         {
@@ -123,6 +148,11 @@ namespace Editors.TextureEditor.TextureTools
         public ICommand ConvertDdsToPngCommand { get; }
         public ICommand ConvertPngToDdsCommand { get; }
         public ICommand TransformDdsCommand { get; }
+        public ICommand BrowseMaterialSpecularFileCommand { get; }
+        public ICommand BrowseMaterialSpecularFolderCommand { get; }
+        public ICommand BrowseMaterialGlossFileCommand { get; }
+        public ICommand BrowseMaterialGlossFolderCommand { get; }
+        public ICommand BuildMaterialMapCommand { get; }
         public ICommand RenameFilesCommand { get; }
         public ICommand DeleteFilesCommand { get; }
         public ICommand CopyBlenderRemoveVertexGroupsScriptCommand { get; }
@@ -137,6 +167,11 @@ namespace Editors.TextureEditor.TextureTools
             ConvertDdsToPngCommand = new DelegateCommand(async _ => await RunAsync(() => _service.ConvertDdsToPng(CreateOptions())), _ => !IsBusy);
             ConvertPngToDdsCommand = new DelegateCommand(async _ => await RunAsync(() => _service.ConvertPngToDds(CreateOptions())), _ => !IsBusy);
             TransformDdsCommand = new DelegateCommand(async _ => await RunAsync(() => _service.TransformDds(CreateOptions())), _ => !IsBusy);
+            BrowseMaterialSpecularFileCommand = new DelegateCommand(_ => BrowseTextureFile(path => MaterialSpecularInputPath = path), _ => !IsBusy);
+            BrowseMaterialSpecularFolderCommand = new DelegateCommand(_ => BrowseTextureFolder(path => MaterialSpecularInputPath = path, "Select specular texture folder"), _ => !IsBusy);
+            BrowseMaterialGlossFileCommand = new DelegateCommand(_ => BrowseTextureFile(path => MaterialGlossInputPath = path), _ => !IsBusy);
+            BrowseMaterialGlossFolderCommand = new DelegateCommand(_ => BrowseTextureFolder(path => MaterialGlossInputPath = path, "Select gloss texture folder"), _ => !IsBusy);
+            BuildMaterialMapCommand = new DelegateCommand(async _ => await RunAsync(() => _service.BuildMaterialMap(CreateMaterialMapOptions())), _ => !IsBusy);
             RenameFilesCommand = new DelegateCommand(async _ => await RunAsync(() => _service.RenameFiles(InputPath, RenameOldText, RenameNewText, Recursive, DryRun)), _ => !IsBusy);
             DeleteFilesCommand = new DelegateCommand(async _ => await RunAsync(() => _service.DeleteFiles(InputPath, DeleteExtension, DeleteNormals, DeleteOtherMaps, Recursive, DryRun)), _ => !IsBusy);
             CopyBlenderRemoveVertexGroupsScriptCommand = new DelegateCommand(_ => Clipboard.SetText(BlenderRemoveVertexGroupsScript), _ => !IsBusy);
@@ -162,6 +197,20 @@ namespace Editors.TextureEditor.TextureTools
             RotationDegrees,
             MirrorX,
             MirrorY);
+
+        private MaterialMapBuildOptions CreateMaterialMapOptions() => new(
+            TexconvPath,
+            MaterialSpecularInputPath,
+            MaterialGlossInputPath,
+            OutputFolderName,
+            Recursive,
+            Overwrite,
+            OutputBesideInput,
+            InvertGlossToRoughness,
+            ClampUiByte(DefaultMaterialMetalness),
+            ClampUiByte(DefaultMaterialRoughness));
+
+        private static int ClampUiByte(int value) => Math.Clamp(value, 0, 255);
 
         private async Task RunAsync(Func<TextureToolRunResult> action)
         {
@@ -220,6 +269,29 @@ namespace Editors.TextureEditor.TextureTools
         }
 
 
+        private void BrowseTextureFile(Action<string> setPath)
+        {
+            var dialog = new OpenFileDialog
+            {
+                Filter = "Texture files|*.dds;*.png|DDS files|*.dds|PNG files|*.png|All files|*.*",
+                CheckFileExists = true
+            };
+            if (dialog.ShowDialog() == true)
+                setPath(dialog.FileName);
+        }
+
+        private void BrowseTextureFolder(Action<string> setPath, string description)
+        {
+            using var dialog = new WinForms.FolderBrowserDialog
+            {
+                Description = description,
+                UseDescriptionForTitle = true
+            };
+            if (dialog.ShowDialog() == WinForms.DialogResult.OK)
+                setPath(dialog.SelectedPath);
+        }
+
+
         private void NotifyGuidanceChanged()
         {
             NotifyPropertyChanged(nameof(OutputLocationDescription));
@@ -228,6 +300,7 @@ namespace Editors.TextureEditor.TextureTools
             NotifyPropertyChanged(nameof(NormalConversionDescription));
             NotifyPropertyChanged(nameof(DdsNormalConversionDescription));
             NotifyPropertyChanged(nameof(MaterialMapConversionDescription));
+            NotifyPropertyChanged(nameof(MaterialMapBuilderDescription));
             NotifyPropertyChanged(nameof(TransformWarningDescription));
             NotifyPropertyChanged(nameof(DeleteSafetyDescription));
         }
@@ -240,6 +313,11 @@ namespace Editors.TextureEditor.TextureTools
             (ConvertDdsToPngCommand as DelegateCommand)?.RaiseCanExecuteChanged();
             (ConvertPngToDdsCommand as DelegateCommand)?.RaiseCanExecuteChanged();
             (TransformDdsCommand as DelegateCommand)?.RaiseCanExecuteChanged();
+            (BrowseMaterialSpecularFileCommand as DelegateCommand)?.RaiseCanExecuteChanged();
+            (BrowseMaterialSpecularFolderCommand as DelegateCommand)?.RaiseCanExecuteChanged();
+            (BrowseMaterialGlossFileCommand as DelegateCommand)?.RaiseCanExecuteChanged();
+            (BrowseMaterialGlossFolderCommand as DelegateCommand)?.RaiseCanExecuteChanged();
+            (BuildMaterialMapCommand as DelegateCommand)?.RaiseCanExecuteChanged();
             (RenameFilesCommand as DelegateCommand)?.RaiseCanExecuteChanged();
             (DeleteFilesCommand as DelegateCommand)?.RaiseCanExecuteChanged();
             (CopyBlenderRemoveVertexGroupsScriptCommand as DelegateCommand)?.RaiseCanExecuteChanged();

@@ -9,15 +9,18 @@
 <p>AssetEditor includes a lightweight replacement for the old standalone Python utilities used for Total War texture and file housekeeping. The tool is available from <strong>Tools → Texture/File Tools</strong>.</p>
 <h2>Safe workflow</h2>
 <table>
-<tr><th>Task</th><th>Texture kind</th><th>Channel options</th></tr>
-<tr><td>Only change DDS to PNG format</td><td>Any</td><td>Turn normal/material conversion off</td></tr>
-<tr><td>Only change PNG to DDS format</td><td>Any</td><td>Turn normal/material conversion off</td></tr>
-<tr><td>Standard Blender/glTF normal PNG to CA/TW DDS</td><td>Normal</td><td>Convert blue/purple normal maps to TW-orange normal maps on</td></tr>
-<tr><td>CA/TW orange normal DDS to Blender PNG</td><td>Normal</td><td>Convert TW-orange normal maps to Blender blue normal maps on</td></tr>
-<tr><td>Blender/glTF-like material map to CA/WH3 layout</td><td>MaterialMap</td><td>Swap material-map R/B channels on</td></tr>
-<tr><td>Already CA/WH3 material map</td><td>MaterialMap</td><td>Swap material-map R/B channels off</td></tr>
+<tr><th>Task</th><th>Tool tab</th><th>Texture kind / options</th></tr>
+<tr><td>Only change DDS to PNG format</td><td>DDS to PNG</td><td>Turn normal/material conversion off</td></tr>
+<tr><td>Only change PNG to DDS format</td><td>PNG to DDS</td><td>Turn normal/material conversion off</td></tr>
+<tr><td>Standard Blender/glTF normal PNG to CA/TW DDS</td><td>PNG to DDS</td><td>Normal + Convert blue/purple normal maps to TW-orange normal maps on</td></tr>
+<tr><td>CA/TW orange normal DDS to Blender PNG</td><td>DDS to PNG</td><td>Normal + Convert TW-orange normal maps to Blender blue normal maps on</td></tr>
+<tr><td>Blender/glTF-like material map to CA/WH3 layout</td><td>PNG to DDS</td><td>MaterialMap + Swap material-map R/B channels on</td></tr>
+<tr><td>Already CA/WH3 material map</td><td>PNG to DDS</td><td>MaterialMap + Swap material-map R/B channels off</td></tr>
+<tr><td>Old specular + gloss to WH3 material map</td><td>Material Builder</td><td>Set specular and gloss paths, keep Invert gloss to roughness on</td></tr>
+<tr><td>Only gloss to WH3 material map</td><td>Material Builder</td><td>Set only gloss, use default metalness for missing specular</td></tr>
+<tr><td>Only specular to WH3 material map</td><td>Material Builder</td><td>Set only specular, use default roughness for missing gloss</td></tr>
 </table>
-<p>The material-map swap is not a specular/gloss combiner. It only swaps channels on one already prepared material-map image.</p>
+<p>The material-map channel swap is not the same as the specular/gloss combiner. Use PNG to DDS when you already have one prepared material-map image. Use Material Builder when you have old separate specular and/or gloss images.</p>
 <h2>Texture naming conventions</h2>
 <table>
 <tr><th>Suffix</th><th>Kind</th><th>DDS output</th></tr>
@@ -35,6 +38,12 @@ A = source R</pre>
 <p>For CA/TW orange normals exported to Blender-editable PNG, the tool uses the same channel conversion as the FBX texture export path.</p>
 <h2>Material map rules</h2>
 <p>Warhammer III material maps replace the old separate specular/gloss workflow. The texture is compressed as BC1_UNORM and is treated as data, not as base colour.</p>
+<p>The Material Builder tab creates a WH3 material map from old inputs using this rule:</p>
+<pre>R = specular luminance / metalness
+G = roughness from gloss
+B = 0
+A = 255</pre>
+<p>When Invert gloss to roughness is on, roughness = 255 - gloss. If only gloss is provided, the red channel uses the default metalness value. If only specular is provided, the green channel uses the default roughness value.</p>
 <h2>File safety</h2>
 <p>Rename and delete actions have Dry run enabled by default. Keep it enabled for the first pass and check the log before modifying files.</p>
 </body>

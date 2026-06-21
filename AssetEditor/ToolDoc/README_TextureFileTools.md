@@ -7,10 +7,11 @@ flowchart LR
     A[Select file or folder] --> B{Tool tab}
     B --> C[DDS to PNG]
     B --> D[PNG to DDS]
-    B --> E[Transform DDS]
-    B --> F[Rename files]
-    B --> G[Delete files]
-    B --> H[Blender helper script]
+    B --> E[Material Builder]
+    B --> F[Transform DDS]
+    B --> G[Rename files]
+    B --> H[Delete files]
+    B --> I[Blender helper script]
 ```
 
 The tool uses Microsoft `texconv.exe` for DDS encoding/decoding. Set the path at the top of the tool before converting textures. The default path is:
@@ -23,16 +24,19 @@ C:\Dev\TexConv\texconv.exe
 
 Use the conversion checkboxes deliberately:
 
-| Task | Texture kind | Channel options |
+| Task | Tool tab | Texture kind / options |
 |---|---|---|
-| Only change DDS to PNG format | Any | Turn normal/material conversion off |
-| Only change PNG to DDS format | Any | Turn normal/material conversion off |
-| Standard Blender/glTF normal PNG to CA/TW DDS | Normal | `Convert blue/purple normal maps to TW-orange normal maps` on |
-| CA/TW orange normal DDS to Blender PNG | Normal | `Convert TW-orange normal maps to Blender blue normal maps` on |
-| Blender/glTF-like material map to CA/WH3 layout | MaterialMap | `Swap material-map R/B channels` on |
-| Already CA/WH3 material map | MaterialMap | `Swap material-map R/B channels` off |
+| Only change DDS to PNG format | DDS to PNG | Turn normal/material conversion off |
+| Only change PNG to DDS format | PNG to DDS | Turn normal/material conversion off |
+| Standard Blender/glTF normal PNG to CA/TW DDS | PNG to DDS | `Normal` + `Convert blue/purple normal maps to TW-orange normal maps` on |
+| CA/TW orange normal DDS to Blender PNG | DDS to PNG | `Normal` + `Convert TW-orange normal maps to Blender blue normal maps` on |
+| Blender/glTF-like material map to CA/WH3 layout | PNG to DDS | `MaterialMap` + `Swap material-map R/B channels` on |
+| Already CA/WH3 material map | PNG to DDS | `MaterialMap` + `Swap material-map R/B channels` off |
+| Old specular + gloss to WH3 material map | Material Builder | Set specular and gloss paths, keep `Invert gloss to roughness` on |
+| Only gloss to WH3 material map | Material Builder | Set only gloss, use default metalness for missing specular |
+| Only specular to WH3 material map | Material Builder | Set only specular, use default roughness for missing gloss |
 
-The material-map swap is not a specular/gloss combiner. It only swaps channels on one already prepared material-map image.
+The material-map channel swap is not the same as the specular/gloss combiner. Use **PNG to DDS** when you already have one prepared material-map image. Use **Material Builder** when you have old separate specular and/or gloss images.
 
 ## Texture naming conventions
 
@@ -63,6 +67,23 @@ For CA/TW orange normals exported to Blender-editable PNG, the tool uses the sam
 ## Material map rules
 
 Warhammer III material maps replace the old separate specular/gloss workflow. The texture is compressed as `BC1_UNORM` and is treated as data, not as base colour. The optional material-map conversion checkbox swaps R/B channels for workflows where the source image uses Blender/glTF-like channel order.
+
+The **Material Builder** tab creates a WH3 material map from old inputs using this rule:
+
+```text
+R = specular luminance / metalness
+G = roughness from gloss
+B = 0
+A = 255
+```
+
+When `Invert gloss to roughness` is on, the green channel is calculated as:
+
+```text
+roughness = 255 - gloss
+```
+
+This is the usual gloss/smoothness to roughness conversion. If only gloss is provided, the red channel uses the default metalness value. If only specular is provided, the green channel uses the default roughness value.
 
 ## File safety
 
